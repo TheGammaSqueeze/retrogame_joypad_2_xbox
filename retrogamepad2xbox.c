@@ -382,22 +382,26 @@ int main(void) {
                 }
 
                 if (backpressed == 1 && backpresscomplete == 0 && homepresscomplete == 0) {
+						// Check if back button pressed and released quickly, send back keyevent
                         if (PHYSICAL_BTN_BACK == 0 && backcount < 120 && backpresscomplete == 0) {
                                 send_shell_command("input keyevent 4");
                                 backpresscomplete = 1;
                                 homepresscomplete = 1;
                         }
-                        if (PHYSICAL_BTN_BACK == 1 && (PHYSICAL_BTN_A == 1 || PHYSICAL_BTN_B == 1 || PHYSICAL_BTN_X == 1 || PHYSICAL_BTN_Y == 1 || PHYSICAL_BTN_SELECT == 1 || PHYSICAL_BTN_START == 1 || PHYSICAL_BTN_TL == 1 || PHYSICAL_BTN_TL2 == 1 || PHYSICAL_BTN_TR == 1 || PHYSICAL_BTN_TR2 || PHYSICAL_BTN_THUMBL == 1 || PHYSICAL_BTN_THUMBR == 1 || PHYSICAL_HAT_X != 0 || PHYSICAL_HAT_Y != 0 || PHYSICAL_ABS_RZ > 1500 || PHYSICAL_ABS_RZ < -1500)) {
+						// Check if back button and any other buttons are pressed, enable MODE key and stop back/home functionality until the back/home button is released. Allows for using back/home button as hotkey with other buttons.
+                        if (PHYSICAL_BTN_BACK == 1 && (PHYSICAL_BTN_A == 1 || PHYSICAL_BTN_B == 1 || PHYSICAL_BTN_X == 1 || PHYSICAL_BTN_Y == 1 || PHYSICAL_BTN_SELECT == 1 || PHYSICAL_BTN_START == 1 || PHYSICAL_BTN_TL == 1 || PHYSICAL_BTN_TL2 == 1 || PHYSICAL_BTN_TR == 1 || PHYSICAL_BTN_TR2 || PHYSICAL_BTN_THUMBL == 1 || PHYSICAL_BTN_THUMBR == 1 || PHYSICAL_HAT_X != 0 || PHYSICAL_HAT_Y != 0 || PHYSICAL_ABS_RZ > 1500 || PHYSICAL_ABS_RZ < -1500 || PHYSICAL_ABS_X > 1500 || PHYSICAL_ABS_X < -1500 || PHYSICAL_ABS_Y > 1500 || PHYSICAL_ABS_Y < -1500 || PHYSICAL_ABS_Z > 1500 || PHYSICAL_ABS_Z < -1500)) {
                                 VIRTUAL_BTN_MODE = 1;
                                 backpresscomplete = 1;
                                 homepresscomplete = 1;
                         }
+						// Check if back button held down with no other buttons pressed, send home keyevent
                         if (PHYSICAL_BTN_BACK == 1 && backcount > 120 && homepresscomplete == 0) {
                                 send_shell_command("input keyevent 3");
                                 backpresscomplete = 1;
                                 homepresscomplete = 1;
                         }
                 }
+
 
                 // Add brightness control
                 if (VIRTUAL_BTN_MODE == 1 && PHYSICAL_ABS_RZ > 1500 && count % 10 == 0) {
@@ -407,6 +411,8 @@ int main(void) {
                         lcd_brightness(1);
                 }
 
+
+                // Reset variables when back button no longer pressed
                 if (ie.code == 158 && ie.value == 0) {
                         PHYSICAL_BTN_BACK = 0;
                         VIRTUAL_BTN_MODE = 0;
@@ -418,6 +424,9 @@ int main(void) {
                         backpresscomplete = 0;
                         homepresscomplete = 0;
                 }
+				
+				
+				
 
                 // Add logic for switching between xbox controller layout
                 if (PHYSICAL_BTN_THUMBL == 1 && PHYSICAL_BTN_TL == 1 && PHYSICAL_BTN_TR == 1 && xboxtogglepresscomplete == 0) {
@@ -462,7 +471,7 @@ int main(void) {
         return 0;
 }
 
-// enable and configure an absolute "position" analog channel
+// Enable and configure an absolute "position" analog channel
 
 static void setup_abs(int fd, unsigned chan, int min, int max) {
         if (ioctl(fd, UI_SET_ABSBIT, chan))
@@ -480,6 +489,7 @@ static void setup_abs(int fd, unsigned chan, int min, int max) {
                 perror("UI_ABS_SETUP");
 }
 
+// Send shell commands and return output as string
 static char * send_shell_command(char * shellcmd) {
         FILE * shell_cmd_pipe;
         char cmd_output[5000];
@@ -495,6 +505,7 @@ static char * send_shell_command(char * shellcmd) {
         return cmd_output;
 }
 
+// Get current LCD brightness and set value up or down by 10
 static int lcd_brightness(int value) {
 
         int current_brightness = atoi(send_shell_command("settings get system screen_brightness"));
