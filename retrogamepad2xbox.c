@@ -6,7 +6,7 @@
 #include <linux/uinput.h>
 #define msleep(ms) usleep((ms) * 1000)
 
-const int debug_messages_enabled = 1;
+const int debug_messages_enabled = 0;
 
 static void setup_abs(int fd, unsigned chan, int min, int max);
 static char * send_shell_command(char * shellcmd);
@@ -375,7 +375,7 @@ int main(void) {
                         return 1;
                 }
 
-                // Add logic for back/home functionality
+                // Add logic for back/mode/home functionality
                 if (PHYSICAL_BTN_BACK == 1) {
                         ++backcount;
                         backpressed = 1;
@@ -398,15 +398,20 @@ int main(void) {
                                 homepresscomplete = 1;
                         }
                 }
-				
-				if (VIRTUAL_BTN_MODE == 1 && PHYSICAL_ABS_RZ > 1500 && count % 2 == 0) {lcd_brightness(0);}
-				if (VIRTUAL_BTN_MODE == 1 && PHYSICAL_ABS_RZ < -1500 && count % 2 == 0) {lcd_brightness(1);}
+
+                // Add brightness control
+                if (VIRTUAL_BTN_MODE == 1 && PHYSICAL_ABS_RZ > 1500 && count % 10 == 0) {
+                        lcd_brightness(0);
+                }
+                if (VIRTUAL_BTN_MODE == 1 && PHYSICAL_ABS_RZ < -1500 && count % 10 == 0) {
+                        lcd_brightness(1);
+                }
 
                 if (ie.code == 158 && ie.value == 0) {
                         PHYSICAL_BTN_BACK = 0;
                         VIRTUAL_BTN_MODE = 0;
                 }
-				
+
                 if (PHYSICAL_BTN_BACK == 0 && VIRTUAL_BTN_MODE == 0) {
                         backpressed = 0;
                         backcount = 0;
@@ -492,20 +497,34 @@ static char * send_shell_command(char * shellcmd) {
 
 static int lcd_brightness(int value) {
 
-int current_brightness = atoi(send_shell_command("settings get system screen_brightness"));
-if (debug_messages_enabled == 1) {fprintf(stderr, "Current brightness: %i\n", current_brightness);}
+        int current_brightness = atoi(send_shell_command("settings get system screen_brightness"));
+        if (debug_messages_enabled == 1) {
+                fprintf(stderr, "Current brightness: %i\n", current_brightness);
+        }
 
-if (value == 1 && current_brightness < 255) {++current_brightness;}
-if (value == 0 && current_brightness > 1) {--current_brightness;}
+        if (value == 1 && current_brightness < 255) {
+                current_brightness = current_brightness + 10;
+                if (current_brightness > 255) {
+                        current_brightness = 255;
+                }
+        }
+        if (value == 0 && current_brightness > 1) {
+                current_brightness = current_brightness - 10;
+                if (current_brightness < 1) {
+                        current_brightness = 1;
+                }
+        }
 
-char new_brightness[3];
-sprintf(new_brightness, "%d", current_brightness);
+        char new_brightness[3];
+        sprintf(new_brightness, "%d", current_brightness);
 
-char set_brightness_cmd[100] = "settings put system screen_brightness ";
-strcat(set_brightness_cmd, new_brightness);
+        char set_brightness_cmd[100] = "settings put system screen_brightness ";
+        strcat(set_brightness_cmd, new_brightness);
 
-send_shell_command(set_brightness_cmd);
+        send_shell_command(set_brightness_cmd);
 
-if (debug_messages_enabled == 1) {fprintf(stderr, "New brightness: %i\n", current_brightness);}
-return current_brightness;
+        if (debug_messages_enabled == 1) {
+                fprintf(stderr, "New brightness: %i\n", current_brightness);
+        }
+        return current_brightness;
 }
