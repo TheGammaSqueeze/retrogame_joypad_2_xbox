@@ -1,3 +1,5 @@
+Like my work and want to buy me a coffee? Feel free to buy one here: https://ko-fi.com/thegammasqueeze
+
 # retrogame_joypad_2_xbox
 A uinput solution to fix issues with some button mappings on Anbernic Android devices. Works on both Stock RG405M/RG505 and with GammaOS. This is not a permanent change, needs to be run again after reboot or after the application is closed. This will be included in future GammaOS releases as standard so no need to run separately. For StockOS, extract the rgp2xbox.zip file from the releases to the root of your internal storage. Execute in Termux using the following commands:
 - su
