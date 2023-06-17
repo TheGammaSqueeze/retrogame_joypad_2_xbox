@@ -5,12 +5,15 @@
 #include <fcntl.h>
 #include <linux/uinput.h>
 #define msleep(ms) usleep((ms) * 1000)
-
 const int debug_messages_enabled = 0;
 
 static void setup_abs(int fd, unsigned chan, int min, int max);
 static char * send_shell_command(char * shellcmd);
 static int lcd_brightness(int value);
+static int get_xbox_toggle_status();
+static void set_xbox_toggle_status(int value);
+static int get_performance_mode_toggle_status();
+static void set_performance_mode_toggle_status(int value);
 
 ///////////////////
 
@@ -151,7 +154,17 @@ int main(void) {
 
         int xboxtogglecount = 0;
         int xboxtogglepresscomplete = 0;
-        int xboxtoggle = 0;
+
+        // Add persistence across reboots for xbox button layout settings
+        int xboxtoggle = get_xbox_toggle_status();
+        set_xbox_toggle_status(xboxtoggle);
+
+        int performancemodetogglecount = 0;
+        int performancemodetogglepresscomplete = 0;
+
+        // Add persistence across reboots for performance mode settings
+        int performancemodetoggle = get_performance_mode_toggle_status();
+        set_performance_mode_toggle_status(performancemodetoggle);
 
         while (1) {
 
@@ -382,26 +395,25 @@ int main(void) {
                 }
 
                 if (backpressed == 1 && backpresscomplete == 0 && homepresscomplete == 0) {
-						// Check if back button pressed and released quickly, send back keyevent
+                        // Check if back button pressed and released quickly, send back keyevent
                         if (PHYSICAL_BTN_BACK == 0 && backcount < 120 && backpresscomplete == 0) {
                                 send_shell_command("input keyevent 4");
                                 backpresscomplete = 1;
                                 homepresscomplete = 1;
                         }
-						// Check if back button and any other buttons are pressed, enable MODE key and stop back/home functionality until the back/home button is released. Allows for using back/home button as hotkey with other buttons.
+                        // Check if back button and any other buttons are pressed, enable MODE key and stop back/home functionality until the back/home button is released. Allows for using back/home button as hotkey with other buttons.
                         if (PHYSICAL_BTN_BACK == 1 && (PHYSICAL_BTN_A == 1 || PHYSICAL_BTN_B == 1 || PHYSICAL_BTN_X == 1 || PHYSICAL_BTN_Y == 1 || PHYSICAL_BTN_SELECT == 1 || PHYSICAL_BTN_START == 1 || PHYSICAL_BTN_TL == 1 || PHYSICAL_BTN_TL2 == 1 || PHYSICAL_BTN_TR == 1 || PHYSICAL_BTN_TR2 || PHYSICAL_BTN_THUMBL == 1 || PHYSICAL_BTN_THUMBR == 1 || PHYSICAL_HAT_X != 0 || PHYSICAL_HAT_Y != 0 || PHYSICAL_ABS_RZ > 1500 || PHYSICAL_ABS_RZ < -1500 || PHYSICAL_ABS_X > 1500 || PHYSICAL_ABS_X < -1500 || PHYSICAL_ABS_Y > 1500 || PHYSICAL_ABS_Y < -1500 || PHYSICAL_ABS_Z > 1500 || PHYSICAL_ABS_Z < -1500)) {
                                 VIRTUAL_BTN_MODE = 1;
                                 backpresscomplete = 1;
                                 homepresscomplete = 1;
                         }
-						// Check if back button held down with no other buttons pressed, send home keyevent
+                        // Check if back button held down with no other buttons pressed, send home keyevent
                         if (PHYSICAL_BTN_BACK == 1 && backcount > 120 && homepresscomplete == 0) {
                                 send_shell_command("input keyevent 3");
                                 backpresscomplete = 1;
                                 homepresscomplete = 1;
                         }
                 }
-
 
                 // Add brightness control
                 if (VIRTUAL_BTN_MODE == 1 && PHYSICAL_ABS_RZ > 1500 && count % 10 == 0) {
@@ -410,7 +422,6 @@ int main(void) {
                 if (VIRTUAL_BTN_MODE == 1 && PHYSICAL_ABS_RZ < -1500 && count % 10 == 0) {
                         lcd_brightness(1);
                 }
-
 
                 // Reset variables when back button no longer pressed
                 if (ie.code == 158 && ie.value == 0) {
@@ -424,9 +435,6 @@ int main(void) {
                         backpresscomplete = 0;
                         homepresscomplete = 0;
                 }
-				
-				
-				
 
                 // Add logic for switching between xbox controller layout
                 if (PHYSICAL_BTN_THUMBL == 1 && PHYSICAL_BTN_TL == 1 && PHYSICAL_BTN_TR == 1 && xboxtogglepresscomplete == 0) {
@@ -435,15 +443,13 @@ int main(void) {
                         if (xboxtogglecount > 200) {
                                 if (xboxtoggle == 0) {
 
-                                        send_shell_command("echo 1 > /sys/devices/platform/singleadc-joypad/remapkey_xbox_switch");
-                                        send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Remapping' 'Remapping' 'Xbox Mapping Activated' \"");
+                                        set_xbox_toggle_status(1);
 
                                         xboxtogglepresscomplete = 1;
                                         xboxtoggle = 1;
                                 } else {
 
-                                        send_shell_command("echo 0 > /sys/devices/platform/singleadc-joypad/remapkey_xbox_switch");
-                                        send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Remapping' 'Remapping' 'Xbox Mapping Deactivated' \"");
+                                        set_xbox_toggle_status(0);
 
                                         xboxtogglepresscomplete = 1;
                                         xboxtoggle = 0;
@@ -456,7 +462,45 @@ int main(void) {
                         xboxtogglepresscomplete = 0;
                 }
 
-                msleep(5);
+                // Add logic for switching between performance mode
+                if (PHYSICAL_BTN_THUMBR == 1 && PHYSICAL_BTN_TL == 1 && PHYSICAL_BTN_TR == 1 && performancemodetogglepresscomplete == 0) {
+                        ++performancemodetogglecount;
+
+                        if (performancemodetogglecount > 200) {
+                                if (performancemodetoggle == 2) {
+
+                                        set_performance_mode_toggle_status(0);
+
+                                        performancemodetogglepresscomplete = 1;
+                                        performancemodetoggle = 0;
+                                } else if (performancemodetoggle == 1) {
+                                        set_performance_mode_toggle_status(2);
+
+                                        performancemodetogglepresscomplete = 1;
+                                        performancemodetoggle = 2;
+                                } else {
+
+                                        set_performance_mode_toggle_status(1);
+
+                                        performancemodetogglepresscomplete = 1;
+                                        performancemodetoggle = 1;
+                                }
+                        }
+                }
+
+                if (PHYSICAL_BTN_THUMBR == 0 && PHYSICAL_BTN_TL == 0 && PHYSICAL_BTN_TR == 0) {
+                        performancemodetogglecount = 0;
+                        performancemodetogglepresscomplete = 0;
+                }
+
+                // Turn off LEDS after some time
+                if (count % 1000 == 0) {
+                        send_shell_command("echo \"0\" > /sys/class/leds/sc27xx\\:blue/brightness");
+                        send_shell_command("echo \"0\" > /sys/class/leds/sc27xx\\:green/brightness");
+                        send_shell_command("echo \"0\" > /sys/class/leds/sc27xx\\:red/brightness");
+                }
+
+                msleep(3);
 
                 ++count;
 
@@ -538,4 +582,65 @@ static int lcd_brightness(int value) {
                 fprintf(stderr, "New brightness: %i\n", current_brightness);
         }
         return current_brightness;
+}
+
+// Get current xbox layout toggle status
+static int get_xbox_toggle_status() {
+
+        // Check the current value via the getprop shell command, return 0 if no valid property exists yet
+        int current_toggle_status = atoi(send_shell_command("buttontogglesetting=$(getprop persist.rgp2xbox.toggleenabled) && ([ -z $buttontogglesetting ] && echo 0 || echo $buttontogglesetting)"));
+        if (debug_messages_enabled == 1) {
+                fprintf(stderr, "Controller toggle status: %i\n", current_toggle_status);
+        }
+
+        return current_toggle_status;
+}
+
+// Set current xbox layout toggle status
+static void set_xbox_toggle_status(int value) {
+
+        if (value == 1) {
+                send_shell_command("echo 1 > /sys/devices/platform/singleadc-joypad/remapkey_xbox_switch");
+                send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Remapping' 'Remapping' 'Xbox Button Mapping Activated - Hold down L3+L1+R1 to deactivate.' \"");
+                send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Xbox Button Mapping Activated - Hold down L3+L1+R1 to deactivate' -n bellavita.toast/.MainActivity\"");
+                send_shell_command("setprop persist.rgp2xbox.toggleenabled 1");
+        } else {
+                send_shell_command("echo 0 > /sys/devices/platform/singleadc-joypad/remapkey_xbox_switch");
+                send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Remapping' 'Remapping' 'Xbox Button Mapping Deactivated - Hold down L3+L1+R1 to activate.' \"");
+                send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Xbox Button Mapping Deactivated - Hold down L3+L1+R1 to activate.' -n bellavita.toast/.MainActivity\"");
+                send_shell_command("setprop persist.rgp2xbox.toggleenabled 0");
+        }
+}
+
+// Get current performance mode toggle status
+static int get_performance_mode_toggle_status() {
+
+        // Check the current value via the getprop shell command, return 0 if no valid property exists yet
+        int current_toggle_status = atoi(send_shell_command("performancetogglesetting=$(getprop persist.rgp2xbox.performancemode) && ([ -z $performancetogglesetting ] && echo 1 || echo $performancetogglesetting)"));
+        if (debug_messages_enabled == 1) {
+                fprintf(stderr, "Performance toggle status: %i\n", current_toggle_status);
+        }
+
+        return current_toggle_status;
+}
+
+// Set current performance mode toggle status
+static void set_performance_mode_toggle_status(int value) {
+
+        if (value == 1) {
+                send_shell_command("/system/bin/setclock_max.sh");
+                send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Performance Mode' 'Performance Mode' 'Max Performance Mode Activated - Hold down R3+L1+R1 to switch to normal mode.' \"");
+                send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Max Performance Mode Activated - Hold down R3+L1+R1 to switch to normal mode.' -n bellavita.toast/.MainActivity\"");
+                send_shell_command("setprop persist.rgp2xbox.performancemode 1");
+        } else if (value == 2) {
+                send_shell_command("/system/bin/setclock_stock.sh");
+                send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Performance Mode' 'Performance Mode' 'Normal Performance Mode Activated - Hold down R3+L1+R1 to switch to power saving mode.' \"");
+                send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Normal Performance Mode Activated - Hold down R3+L1+R1 to switch to power saving mode.' -n bellavita.toast/.MainActivity\"");
+                send_shell_command("setprop persist.rgp2xbox.performancemode 2");
+        } else {
+                send_shell_command("/system/bin/setclock_powersave.sh");
+                send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Performance Mode' 'Performance Mode' 'Power Saving Mode Activated - Hold down R3+L1+R1 to switch to max performance mode.' \"");
+                send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Power Saving Mode Activated - Hold down R3+L1+R1 to switch to max performance mode.' -n bellavita.toast/.MainActivity\"");
+                send_shell_command("setprop persist.rgp2xbox.performancemode 0");
+        }
 }
