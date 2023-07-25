@@ -190,6 +190,7 @@ int main(void) {
         int PHYSICAL_BTN_DPAD_LEFT = 0;
         int PHYSICAL_BTN_DPAD_RIGHT = 0;
         int PHYSICAL_BTN_BACK = 0;
+        int PHYSICAL_BTN_HOME = 0;
         int VIRTUAL_BTN_MODE = 0;
 
         int PHYSICAL_HAT_X = 0;
@@ -200,6 +201,8 @@ int main(void) {
 
         int PHYSICAL_ABS_Z = 0;
         int PHYSICAL_ABS_RZ = 0;
+		
+		int homepressed = 0;
 
         int backpressed = 0;
         int backcount = 0;
@@ -328,6 +331,11 @@ int main(void) {
                         if (ie.code == 158) {
                                 PHYSICAL_BTN_BACK = ie.value;
                         }
+						
+                        // HOME
+                        if (ie.code == 68) {
+                                PHYSICAL_BTN_HOME = ie.value;
+                        }
 
                         // MODE - HYBRID USAGE WITH BACK BUTTON
                         if (VIRTUAL_BTN_MODE == 1) {
@@ -403,9 +411,9 @@ int main(void) {
                 ev[7].code = ABS_BRAKE;
                 ev[7].value = PHYSICAL_BTN_TL2;
 
-                //      ev[8].type = EV_ABS;
-                //      ev[8].code = ABS_THROTTLE;
-                //      ev[8].value = PHYSICAL_BTN_TR2;
+                ev[8].type = EV_KEY;
+                ev[8].code = 66;
+                ev[8].value = PHYSICAL_BTN_HOME;
 
                 ev[9].type = EV_KEY;
                 ev[9].code = BTN_TL;
@@ -590,6 +598,17 @@ if (screenison == 1)
                         performancemodetogglecount = 0;
                         performancemodetogglepresscomplete = 0;
                 }
+				
+				if (PHYSICAL_BTN_HOME == 1 && homepressed == 0)
+				{
+					send_shell_command("input keyevent 3");
+					homepressed = 1;
+				}
+				
+				if (PHYSICAL_BTN_HOME == 0)
+				{
+					homepressed = 0;
+				}
 }
 
 
