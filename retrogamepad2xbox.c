@@ -126,11 +126,11 @@ int main(void) {
 		
 		char rgpremove[1000] = "rm ";
 		strcat(rgpremove, openrgp);
-//		send_shell_command(rgpremove);
+		send_shell_command(rgpremove);
 		
 		char tjpremove[1000] = "rm /dev/input/";
 		strcat(tjpremove, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A1 input/touch_joypad | grep -Eo 'event[0-9]+'"));
-//		send_shell_command(tjpremove);
+		send_shell_command(tjpremove);
 
         // Define data structure to capture physical inputs
         struct input_event ie;
