@@ -239,6 +239,7 @@ int main(void) {
 		
 		// Check for screen on
 		int screenison = 1;
+		int isadjustingbrightness = 0;
 		
 		// Check if swap left analog to dpad
 		int dpadanalogswap = 0;
@@ -344,7 +345,6 @@ int main(void) {
                         // C
                         if (ie.code == 306) {
                                 PHYSICAL_BTN_C = ie.value;
-								//VIRTUAL_BTN_2 = ie.value;
                         }
 
                         // X
@@ -360,7 +360,6 @@ int main(void) {
                         // Z
                         if (ie.code == 309) {
                                 PHYSICAL_BTN_Z = ie.value;
-								//VIRTUAL_BTN_1 = ie.value;
                         }
 
                         // SELECT
@@ -491,9 +490,11 @@ int main(void) {
                 ev[11].code = BTN_TR;
                 ev[11].value = PHYSICAL_BTN_TR;
 
+		if (isadjustingbrightness == 0) {
                 ev[12].type = EV_KEY;
                 ev[12].code = BTN_MODE;
                 ev[12].value = VIRTUAL_BTN_MODE;
+		}
 
                 ev[13].type = EV_KEY;
                 ev[13].code = BTN_X;
@@ -577,8 +578,6 @@ int main(void) {
                 ev[31].value = 0;
 
 
-
-
 if (screenison == 1 || (screenison == 0 && PHYSICAL_BTN_POWER == 1))
 {
 
@@ -606,6 +605,7 @@ if (screenison == 1 || (screenison == 0 && PHYSICAL_BTN_POWER == 1))
                                 VIRTUAL_BTN_MODE = 1;
                                 backpresscomplete = 1;
                                 homepresscomplete = 1;
+								if(PHYSICAL_BTN_VOLUMEUP == 1 || PHYSICAL_BTN_VOLUMEDOWN == 1 || PHYSICAL_ABS_RZ > 1500 || PHYSICAL_ABS_RZ < -1500) {isadjustingbrightness = 1;} else {isadjustingbrightness = 0;}
                         }						
 
                         // Check if back button pressed and released quickly, send back keyevent
@@ -625,24 +625,20 @@ if (screenison == 1 || (screenison == 0 && PHYSICAL_BTN_POWER == 1))
 					
                 }
 
-				//if (VIRTUAL_BTN_MODE == 0 && PHYSICAL_BTN_VOLUMEDOWN == 1 && count % 10 == 0) {send_shell_command("input keyevent 25");};
-				//if (VIRTUAL_BTN_MODE == 0 && PHYSICAL_BTN_VOLUMEUP == 1 && count % 10 == 0) {send_shell_command("input keyevent 24");};
-				
-				
 
                 // Add brightness control
-                if (VIRTUAL_BTN_MODE == 1 && PHYSICAL_ABS_RZ > 1500 && count % 10 == 0) {
+                if (VIRTUAL_BTN_MODE == 1 && isadjustingbrightness == 1 && PHYSICAL_ABS_RZ > 1500 && count % 10 == 0) {
                         lcd_brightness(0);
                 }
-                if (VIRTUAL_BTN_MODE == 1 && PHYSICAL_ABS_RZ < -1500 && count % 10 == 0) {
+                if (VIRTUAL_BTN_MODE == 1 && isadjustingbrightness == 1 && PHYSICAL_ABS_RZ < -1500 && count % 10 == 0) {
                         lcd_brightness(1);
                 }
 				
                 // Add brightness control
-                if (VIRTUAL_BTN_MODE == 1 && PHYSICAL_BTN_VOLUMEDOWN == 1 && count % 10 == 0) {
+                if (VIRTUAL_BTN_MODE == 1 && isadjustingbrightness == 1 && PHYSICAL_BTN_VOLUMEDOWN == 1 && count % 10 == 0) {
                         lcd_brightness(0);
                 }
-                if (VIRTUAL_BTN_MODE == 1 && PHYSICAL_BTN_VOLUMEUP == 1 && count % 10 == 0) {
+                if (VIRTUAL_BTN_MODE == 1 && isadjustingbrightness == 1 && PHYSICAL_BTN_VOLUMEUP == 1 && count % 10 == 0) {
                         lcd_brightness(1);
                 }
 
@@ -670,23 +666,16 @@ if (screenison == 1 || (screenison == 0 && PHYSICAL_BTN_POWER == 1))
                 }
 				
 				
-				
-				
 				if (menutoggleactivated == 0 && menutogglecompleted == 1 && count % 10 == 0) {
-					//fprintf(stderr,"menu button deactivated\n");
 						VIRTUAL_BTN_MODE = 0; VIRTUAL_BTN_1 = 0;
 						menutogglecompleted = 0;
 				}				
 				
 				if (menutoggleactivated == 1 && count % 10 == 0) {
-					//fprintf(stderr,"menu button activated\n");
 						VIRTUAL_BTN_MODE = 1; VIRTUAL_BTN_1 = 1;
 						menutoggleactivated = 0;
 						menutogglecompleted = 1;
 				}
-
-
-
 
                 // Add logic for switching between xbox controller layout
                 if ((PHYSICAL_BTN_Z == 1 || PHYSICAL_BTN_THUMBL == 1) && PHYSICAL_BTN_TL == 1 && PHYSICAL_BTN_TR == 1 && xboxtogglepresscomplete == 0) {
@@ -749,10 +738,6 @@ if (screenison == 1 || (screenison == 0 && PHYSICAL_BTN_POWER == 1))
                 }
 				
 				
-				
-				
-				
-/////////////////////
                 // Add logic for switching between analog controller layout
                 if (PHYSICAL_BTN_Y == 1 && PHYSICAL_BTN_TL == 1 && PHYSICAL_BTN_TR == 1 && dpadtogglepresscomplete == 0) {
                         ++dpadtogglecount;
@@ -762,13 +747,13 @@ if (screenison == 1 || (screenison == 0 && PHYSICAL_BTN_POWER == 1))
 
                                         dpadtogglepresscomplete = 1;
                                         dpadanalogswap = 1;
-										send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Analog Swap' 'Analog Swap' 'Analog/Dpad Swap activated - Hold down L3+L1+Y to deactivate.' \"");
-										send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Analog/Dpad Swap activated - Hold down L3+L1+Y to deactivate.' -n bellavita.toast/.MainActivity\"");
+										send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Analog Swap' 'Analog Swap' 'Analog/Dpad Swap activated - Hold down L1+R1+Y to deactivate.' \"");
+										send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Analog/Dpad Swap activated - Hold down L1+R1+Y to deactivate.' -n bellavita.toast/.MainActivity\"");
                                 } else {
                                         dpadtogglepresscomplete = 1;
                                         dpadanalogswap = 0;
-										send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Analog Swap' 'Analog Swap' 'Analog/Dpad Swap deactivated - Hold down L3+L1+Y to activate.' \"");
-										send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Analog/Dpad Swap dectivated - Hold down L3+L1+Y to activate.' -n bellavita.toast/.MainActivity\"");
+										send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Analog Swap' 'Analog Swap' 'Analog/Dpad Swap deactivated - Hold down L1+R1+Y to activate.' \"");
+										send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Analog/Dpad Swap dectivated - Hold down L1+R1+Y to activate.' -n bellavita.toast/.MainActivity\"");
                                 }
                         }
                 }
@@ -890,13 +875,13 @@ static void set_xbox_toggle_status(int value) {
 
         if (value == 1) {
                 send_shell_command("echo 1 > /sys/devices/platform/singleadc-joypad/remapkey_xbox_switch");
-                send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Remapping' 'Remapping' 'Xbox Button Mapping Activated - Hold down L3+L1+R1/Z to deactivate.' \"");
-                send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Xbox Button Mapping Activated - Hold down L3+L1+R1/Z to deactivate' -n bellavita.toast/.MainActivity\"");
+                send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Remapping' 'Remapping' 'Xbox Button Mapping Activated - Hold down L1+R1+L3/Z to deactivate.' \"");
+                send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Xbox Button Mapping Activated - Hold down L1+R1+L3/Z to deactivate' -n bellavita.toast/.MainActivity\"");
                 send_shell_command("setprop persist.rgp2xbox.toggleenabled 1");
         } else {
                 send_shell_command("echo 0 > /sys/devices/platform/singleadc-joypad/remapkey_xbox_switch");
-                send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Remapping' 'Remapping' 'Xbox Button Mapping Deactivated - Hold down L3+L1+R1/Z to activate.' \"");
-                send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Xbox Button Mapping Deactivated - Hold down L3+L1+R1/Z to activate.' -n bellavita.toast/.MainActivity\"");
+                send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Remapping' 'Remapping' 'Xbox Button Mapping Deactivated - Hold down L1+R1+L3/Z  to activate.' \"");
+                send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Xbox Button Mapping Deactivated - Hold down L1+R1+L3/Z  to activate.' -n bellavita.toast/.MainActivity\"");
                 send_shell_command("setprop persist.rgp2xbox.toggleenabled 0");
         }
 }
@@ -932,22 +917,22 @@ static void set_performance_mode_toggle_status(int value) {
                 char perfmode[1000] = "";
                 strcat(perfmode, send_shell_command("/system/bin/setclock_max.sh"));
                 fprintf(stderr, "%s", perfmode);
-                send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Performance Mode' 'Performance Mode' 'Max Performance Mode Activated - Hold down R3+L1+R1/C to switch to normal mode.' \"");
-                send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Max Performance Mode Activated - Hold down R3+L1+R1/C to switch to normal mode.' -n bellavita.toast/.MainActivity\"");
+                send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Performance Mode' 'Performance Mode' 'Max Performance Mode Activated - Hold down L1+R1+R3/C to switch to normal mode.' \"");
+                send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Max Performance Mode Activated - Hold down L1+R1+R3/C to switch to normal mode.' -n bellavita.toast/.MainActivity\"");
                 send_shell_command("setprop persist.rgp2xbox.performancemode 1");
         } else if (value == 2) {
                 char normmode[1000] = "";
                 strcat(normmode, send_shell_command("/system/bin/setclock_stock.sh"));
                 fprintf(stderr, "%s", normmode);
-                send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Performance Mode' 'Performance Mode' 'Normal Performance Mode Activated - Hold down R3+L1+R1/C to switch to power saving mode.' \"");
-                send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Normal Performance Mode Activated - Hold down R3+L1+R1/C to switch to power saving mode.' -n bellavita.toast/.MainActivity\"");
+                send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Performance Mode' 'Performance Mode' 'Normal Performance Mode Activated - Hold down L1+R1+R3/C to switch to power saving mode.' \"");
+                send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Normal Performance Mode Activated - Hold down L1+R1+R3/C to switch to power saving mode.' -n bellavita.toast/.MainActivity\"");
                 send_shell_command("setprop persist.rgp2xbox.performancemode 2");
         } else {
                 char psmode[1000] = "";
                 strcat(psmode, send_shell_command("/system/bin/setclock_powersave.sh"));
                 fprintf(stderr,"%s", psmode);
-                send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Performance Mode' 'Performance Mode' 'Power Saving Mode Activated - Hold down R3+L1+R1/C to switch to max performance mode.' \"");
-                send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Power Saving Mode Activated - Hold down R3+L1+R1/C to switch to max performance mode.' -n bellavita.toast/.MainActivity\"");
+                send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Performance Mode' 'Performance Mode' 'Power Saving Mode Activated - Hold down L1+R1+R3/C to switch to max performance mode.' \"");
+                send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Power Saving Mode Activated - Hold down L1+R1+R3/C to switch to max performance mode.' -n bellavita.toast/.MainActivity\"");
                 send_shell_command("setprop persist.rgp2xbox.performancemode 0");
         }
 }
