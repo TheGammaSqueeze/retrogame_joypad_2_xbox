@@ -490,11 +490,9 @@ int main(void) {
                 ev[11].code = BTN_TR;
                 ev[11].value = PHYSICAL_BTN_TR;
 
-		if (isadjustingbrightness == 0) {
                 ev[12].type = EV_KEY;
                 ev[12].code = BTN_MODE;
                 ev[12].value = VIRTUAL_BTN_MODE;
-		}
 
                 ev[13].type = EV_KEY;
                 ev[13].code = BTN_X;
@@ -560,7 +558,7 @@ int main(void) {
                 ev[28].code = KEY_POWER;
                 ev[28].value = PHYSICAL_BTN_POWER;
 
-				if (PHYSICAL_BTN_BACK == 0) {
+				if (PHYSICAL_BTN_BACK == 0 && isadjustingbrightness == 0) {
                 ev[29].type = EV_KEY;
                 ev[29].code = KEY_VOLUMEDOWN;
                 ev[29].value = PHYSICAL_BTN_VOLUMEDOWN;
@@ -605,7 +603,7 @@ if (screenison == 1 || (screenison == 0 && PHYSICAL_BTN_POWER == 1))
                                 VIRTUAL_BTN_MODE = 1;
                                 backpresscomplete = 1;
                                 homepresscomplete = 1;
-								if(PHYSICAL_BTN_VOLUMEUP == 1 || PHYSICAL_BTN_VOLUMEDOWN == 1 || PHYSICAL_ABS_RZ > 1500 || PHYSICAL_ABS_RZ < -1500) {isadjustingbrightness = 1;} else {isadjustingbrightness = 0;}
+								if(PHYSICAL_BTN_VOLUMEUP == 1 || PHYSICAL_BTN_VOLUMEDOWN == 1 || PHYSICAL_ABS_RZ > 1500 || PHYSICAL_ABS_RZ < -1500) {isadjustingbrightness = 1; VIRTUAL_BTN_MODE = 0;} else {isadjustingbrightness = 0;}
                         }						
 
                         // Check if back button pressed and released quickly, send back keyevent
@@ -627,21 +625,25 @@ if (screenison == 1 || (screenison == 0 && PHYSICAL_BTN_POWER == 1))
 
 
                 // Add brightness control
-                if (VIRTUAL_BTN_MODE == 1 && isadjustingbrightness == 1 && PHYSICAL_ABS_RZ > 1500 && count % 10 == 0) {
+                if (VIRTUAL_BTN_MODE == 0 && isadjustingbrightness == 1 && PHYSICAL_ABS_RZ > 1500 && count % 10 == 0) {
                         lcd_brightness(0);
                 }
-                if (VIRTUAL_BTN_MODE == 1 && isadjustingbrightness == 1 && PHYSICAL_ABS_RZ < -1500 && count % 10 == 0) {
+                if (VIRTUAL_BTN_MODE == 0 && isadjustingbrightness == 1 && PHYSICAL_ABS_RZ < -1500 && count % 10 == 0) {
                         lcd_brightness(1);
                 }
 				
                 // Add brightness control
-                if (VIRTUAL_BTN_MODE == 1 && isadjustingbrightness == 1 && PHYSICAL_BTN_VOLUMEDOWN == 1 && count % 10 == 0) {
+                if (VIRTUAL_BTN_MODE == 0 && isadjustingbrightness == 1 && PHYSICAL_BTN_VOLUMEDOWN == 1 && count % 10 == 0) {
                         lcd_brightness(0);
                 }
-                if (VIRTUAL_BTN_MODE == 1 && isadjustingbrightness == 1 && PHYSICAL_BTN_VOLUMEUP == 1 && count % 10 == 0) {
+                if (VIRTUAL_BTN_MODE == 0 && isadjustingbrightness == 1 && PHYSICAL_BTN_VOLUMEUP == 1 && count % 10 == 0) {
                         lcd_brightness(1);
                 }
 
+				if (ie.code == 158 && ie.value == 0 && PHYSICAL_BTN_VOLUMEUP == 0 && PHYSICAL_BTN_VOLUMEDOWN == 0 && PHYSICAL_ABS_RZ < 1500 && PHYSICAL_ABS_RZ > -1500)
+				{
+						isadjustingbrightness = 0;
+				}
 
                 // Reset variables when back button no longer pressed
                 if (ie.code == 158 && ie.value == 0) {
