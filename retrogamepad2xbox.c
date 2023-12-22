@@ -234,8 +234,8 @@ int main(void) {
         int performancemodetoggle = get_performance_mode_toggle_status();
         set_performance_mode_toggle_status(performancemodetoggle);
 		
-		send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Analog Swap' 'Analog Swap' 'Analog/Dpad Swap deactivated - Hold down L3+L1+Y to activate.' \"");
-		send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Analog/Dpad Swap dectivated - Hold down L3+L1+Y to activate.' -n bellavita.toast/.MainActivity\"");
+		send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Analog Swap' 'Analog Swap' 'Analog/Dpad Swap deactivated - Hold down L1+R1+Y to activate.' \"");
+		send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Analog/Dpad Swap dectivated - Hold down L1+R1+Y to activate.' -n bellavita.toast/.MainActivity\"");
 		
 		// Check for screen on
 		int screenison = 1;
