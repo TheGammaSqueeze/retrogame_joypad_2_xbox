@@ -271,8 +271,6 @@ int main(void) {
 					if (gpioie.code == 115) {PHYSICAL_BTN_VOLUMEUP = gpioie.value;}
 					if (gpioie.code == 116) {PHYSICAL_BTN_POWER = gpioie.value;}
 				}
-/////////////
-				
 				
 				//Read input on adc buttons			
                 read(physical_adc_keys, & adckeysie, sizeof(struct input_event));
@@ -285,9 +283,6 @@ int main(void) {
 						}
 						
 				}
-		
-
-///////////////////////////////////////////////////////////////////////////////
 
                 struct input_event ev[32];
                 memset( & ev, 0, sizeof ev);
@@ -764,7 +759,7 @@ if (screenison == 1 || (screenison == 0 && PHYSICAL_BTN_POWER == 1))
                         dpadtogglecount = 0;
                         dpadtogglepresscomplete = 0;
                 }
-///////////////////////
+				
 				if (PHYSICAL_BTN_HOME == 1 && homepressed == 0)
 				{
 					send_shell_command("input keyevent 3");
@@ -791,6 +786,10 @@ if (screenison == 1 || (screenison == 0 && PHYSICAL_BTN_POWER == 1))
         return 0;
 }
 
+
+
+
+
 // Enable and configure an absolute "position" analog channel
 
 static void setup_abs(int fd, unsigned chan, int min, int max) {
@@ -809,6 +808,8 @@ static void setup_abs(int fd, unsigned chan, int min, int max) {
                 perror("UI_ABS_SETUP");
 }
 
+
+
 // Send shell commands and return output as string
 static char * send_shell_command(char * shellcmd) {
         FILE * shell_cmd_pipe;
@@ -824,6 +825,8 @@ static char * send_shell_command(char * shellcmd) {
 
         return cmd_output;
 }
+
+
 
 // Get current LCD brightness and set value up or down by 10
 static int lcd_brightness(int value) {
@@ -860,6 +863,8 @@ static int lcd_brightness(int value) {
         return current_brightness;
 }
 
+
+
 // Get current xbox layout toggle status
 static int get_xbox_toggle_status() {
 
@@ -871,6 +876,8 @@ static int get_xbox_toggle_status() {
 
         return current_toggle_status;
 }
+
+
 
 // Set current xbox layout toggle status
 static void set_xbox_toggle_status(int value) {
@@ -888,6 +895,8 @@ static void set_xbox_toggle_status(int value) {
         }
 }
 
+
+
 // Get current performance mode toggle status
 static int get_performance_mode_toggle_status() {
 
@@ -900,6 +909,8 @@ static int get_performance_mode_toggle_status() {
         return current_toggle_status;
 }
 
+
+
 // Get retroarch status
 static int get_retroarch_status() {
 
@@ -911,6 +922,8 @@ static int get_retroarch_status() {
 
         return current_retroarch_status;
 }
+
+
 
 // Set current performance mode toggle status
 static void set_performance_mode_toggle_status(int value) {
@@ -938,6 +951,8 @@ static void set_performance_mode_toggle_status(int value) {
                 send_shell_command("setprop persist.rgp2xbox.performancemode 0");
         }
 }
+
+
 
 // Get current screen status
 static int get_screen_status() {
