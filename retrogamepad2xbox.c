@@ -7,10 +7,13 @@
 #include <linux/uinput.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <sys/file.h>
+#include <signal.h>
 
 #define BUFFER_SIZE sizeof(int)
 #define DIRECTORY_PATH "/data/rgp2xbox/"
 #define msleep(ms) usleep((ms) * 1000)
+#define RETRY_DELAY 5000 // Retry delay in microseconds (5 milliseconds)
 
 // Global variable declarations
 const int debug_messages_enabled = 0;
@@ -21,6 +24,17 @@ int *analog_axis, *analog_axis_isupdated;
 int *dpad_analog_swap, *dpad_analog_swap_isupdated;
 int *fan_control, *fan_control_isupdated;
 
+// File descriptors for locking memory maps
+int fd_abxy_layout, fd_abxy_layout_isupdated;
+int fd_performance_mode, fd_performance_mode_isupdated;
+int fd_analog_sensitivity, fd_analog_sensitivity_isupdated;
+int fd_analog_axis, fd_analog_axis_isupdated;
+int fd_dpad_analog_swap, fd_dpad_analog_swap_isupdated;
+int fd_fan_control, fd_fan_control_isupdated;
+
+
+// Method declarations
+static void bus_error_handler(int sig);
 static void setup_abs(int fd, unsigned chan, int min, int max);
 static char * send_shell_command(char * shellcmd);
 static int lcd_brightness(int value);
@@ -30,14 +44,35 @@ static int get_performance_mode_toggle_status();
 static int get_retroarch_status();
 static void set_performance_mode_toggle_status(int value);
 static int get_screen_status();
-
-static int openAndMap(const char* filePath, int** shared_data);
+static int openAndMap(const char* filePath, int** shared_data, int* fd);
+static void lockFile(int fd);
+static void unlockFile(int fd);
 static void setupMaps();
+static void lockMaps();
+static void unlockMaps();
 static void printUpdatedValues();
 
 ///////////////////
 
+static void bus_error_handler(int sig) {
+    // Log the bus error
+    fprintf(stderr, "Caught bus error (signal %d). Ignoring it.\n", sig);
+    // Optionally, you can implement additional logic here
+}
+
+
 int main(void) {
+
+		// Set up the signal handler for SIGBUS
+		struct sigaction sa;
+		sa.sa_handler = bus_error_handler;
+		sigemptyset(&sa.sa_mask);
+		sa.sa_flags = 0;
+
+		if (sigaction(SIGBUS, &sa, NULL) == -1) {
+			perror("Error setting signal handler for SIGBUS");
+			exit(EXIT_FAILURE);
+		}
 
 	    setupMaps();
 		
@@ -268,6 +303,8 @@ int main(void) {
 		
 		int menutoggleactivated = 0;
 		int menutogglecompleted = 0;
+		
+		int ismapslocked = 0;
 
         while (1) {
 
@@ -791,9 +828,19 @@ if (screenison == 1 || (screenison == 0 && PHYSICAL_BTN_POWER == 1))
 					homepressed = 0;
 				}
 				
+				
+				
 				// Check if anything updated on memory maps
-				if (count % 10 == 0) {
+				
+				if (count % 50 == 0) {
+					lockMaps();
+					ismapslocked = 1;
+				}
+				
+				if (count % 250 == 0 && ismapslocked == 1) {
 					printUpdatedValues();
+					unlockMaps();
+					ismapslocked = 0;
 				}
 				
 }
@@ -1008,36 +1055,55 @@ static int get_screen_status() {
 
 // Create or open memory maps containing different toggles to be used by both rgp2xbox and SystemUI, allow access from any process without root required. 
 // Example to update the value via shell: value=1; printf "%b" "$(printf '\\x%02x\\x%02x\\x%02x\\x%02x' $((value & 0xFF)) $((value >> 8 & 0xFF)) $((value >> 16 & 0xFF)) $((value >> 24 & 0xFF)))" > /data/rgp2xbox/ABXY_LAYOUT
-static int openAndMap(const char* filePath, int** shared_data) {
-    int fd = open(filePath, O_RDWR | O_CREAT, 0666);
-    if (fd == -1) {
-        perror("Error opening file");
+static int openAndMap(const char* filePath, int** shared_data, int* fd) {
+    *fd = open(filePath, O_RDWR | O_CREAT, 0666);
+    if (*fd == -1) {
+        fprintf(stderr, "Error opening file: %s\n", filePath);
         return -1;
     }
 
     if (chmod(filePath, 0666) == -1) {
-        perror("Error setting file permissions");
-        close(fd);
+        fprintf(stderr, "Error setting file permissions: %s\n", filePath);
+        close(*fd);
         return -1;
     }
 
-    ftruncate(fd, BUFFER_SIZE);
+    ftruncate(*fd, BUFFER_SIZE);
 
-    *shared_data = mmap(NULL, BUFFER_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    *shared_data = mmap(NULL, BUFFER_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, *fd, 0);
     if (*shared_data == MAP_FAILED) {
-        perror("Error mapping file");
-        close(fd);
+        fprintf(stderr, "Error mapping file: %s\n", filePath);
+        close(*fd);
         return -1;
     }
 
-    return fd;
+    return 0;
+}
+
+static void lockFile(int fd) {
+    int attempts = 0;
+    while (flock(fd, LOCK_EX) == -1) {
+        if (errno != EINTR) {
+            fprintf(stderr, "Attempt %d: Error locking file, retrying...\n", ++attempts);
+            usleep(RETRY_DELAY);
+        }
+    }
+
+}
+
+static void unlockFile(int fd) {
+    if (flock(fd, LOCK_UN) == -1) {
+        fprintf(stderr, "Error unlocking file\n");
+    } else {
+        //fprintf(stderr, "File unlocked\n");
+    }
 }
 
 static void setupMaps() {
     struct stat st = {0};
     if (stat(DIRECTORY_PATH, &st) == -1) {
         if (mkdir(DIRECTORY_PATH, 0777) == -1) {
-            perror("Error creating directory");
+            fprintf(stderr, "Error creating directory: %s\n", DIRECTORY_PATH);
             return;
         }
         chmod(DIRECTORY_PATH, 0777);
@@ -1045,49 +1111,88 @@ static void setupMaps() {
 
     char filePath[255];
 
-    openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "ABXY_LAYOUT"), &abxy_layout);
-    openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "ABXY_LAYOUT_ISUPDATED"), &abxy_layout_isupdated);
+    openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "ABXY_LAYOUT"), &abxy_layout, &fd_abxy_layout);
+    openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "ABXY_LAYOUT_ISUPDATED"), &abxy_layout_isupdated, &fd_abxy_layout_isupdated);
 
-    openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "PERFORMANCE_MODE"), &performance_mode);
-    openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "PERFORMANCE_MODE_ISUPDATED"), &performance_mode_isupdated);
+    openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "PERFORMANCE_MODE"), &performance_mode, &fd_performance_mode);
+    openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "PERFORMANCE_MODE_ISUPDATED"), &performance_mode_isupdated, &fd_performance_mode_isupdated);
 
-    openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "ANALOG_SENSITIVITY"), &analog_sensitivity);
-    openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "ANALOG_SENSITIVITY_ISUPDATED"), &analog_sensitivity_isupdated);
+    openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "ANALOG_SENSITIVITY"), &analog_sensitivity, &fd_analog_sensitivity);
+    openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "ANALOG_SENSITIVITY_ISUPDATED"), &analog_sensitivity_isupdated, &fd_analog_sensitivity_isupdated);
 
-    openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "ANALOG_AXIS"), &analog_axis);
-    openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "ANALOG_AXIS_ISUPDATED"), &analog_axis_isupdated);
+    openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "ANALOG_AXIS"), &analog_axis, &fd_analog_axis);
+    openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "ANALOG_AXIS_ISUPDATED"), &analog_axis_isupdated, &fd_analog_axis_isupdated);
 
-    openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "DPAD_ANALOG_SWAP"), &dpad_analog_swap);
-    openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "DPAD_ANALOG_SWAP_ISUPDATED"), &dpad_analog_swap_isupdated);
+    openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "DPAD_ANALOG_SWAP"), &dpad_analog_swap, &fd_dpad_analog_swap);
+    openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "DPAD_ANALOG_SWAP_ISUPDATED"), &dpad_analog_swap_isupdated, &fd_dpad_analog_swap_isupdated);
 
-    openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "FAN_CONTROL"), &fan_control);
-    openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "FAN_CONTROL_ISUPDATED"), &fan_control_isupdated);
+    openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "FAN_CONTROL"), &fan_control, &fd_fan_control);
+    openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "FAN_CONTROL_ISUPDATED"), &fan_control_isupdated, &fd_fan_control_isupdated);
 }
 
-// Print values if anything = 1 in _isupdated, then set isupdated toggle back to 0
+static void lockMaps()
+{
+    lockFile(fd_abxy_layout);
+    lockFile(fd_abxy_layout_isupdated);
+    lockFile(fd_performance_mode);
+    lockFile(fd_performance_mode_isupdated);
+    lockFile(fd_analog_sensitivity);
+    lockFile(fd_analog_sensitivity_isupdated);
+    lockFile(fd_analog_axis);
+    lockFile(fd_analog_axis_isupdated);
+    lockFile(fd_dpad_analog_swap);
+    lockFile(fd_dpad_analog_swap_isupdated);
+    lockFile(fd_fan_control);
+    lockFile(fd_fan_control_isupdated);
+}
+
+static void unlockMaps()
+{
+    unlockFile(fd_abxy_layout_isupdated);
+    unlockFile(fd_abxy_layout);
+    unlockFile(fd_performance_mode_isupdated);
+    unlockFile(fd_performance_mode);
+    unlockFile(fd_analog_sensitivity_isupdated);
+    unlockFile(fd_analog_sensitivity);
+    unlockFile(fd_analog_axis_isupdated);
+    unlockFile(fd_analog_axis);
+    unlockFile(fd_dpad_analog_swap_isupdated);
+    unlockFile(fd_dpad_analog_swap);
+    unlockFile(fd_fan_control_isupdated);
+    unlockFile(fd_fan_control);
+}
+
+// Print values if anything = 1 in _isupdated, then set isupdated toggle back to 0. Updates global variables.
 static void printUpdatedValues() {
+
     if (*abxy_layout_isupdated) {
         fprintf(stderr, "ABXY_LAYOUT: %d\n", *abxy_layout);
         *abxy_layout_isupdated = 0;
     }
+
     if (*performance_mode_isupdated) {
         fprintf(stderr, "PERFORMANCE_MODE: %d\n", *performance_mode);
         *performance_mode_isupdated = 0;
     }
+
     if (*analog_sensitivity_isupdated) {
         fprintf(stderr, "ANALOG_SENSITIVITY: %d\n", *analog_sensitivity);
         *analog_sensitivity_isupdated = 0;
     }
+
     if (*analog_axis_isupdated) {
         fprintf(stderr, "ANALOG_AXIS: %d\n", *analog_axis);
         *analog_axis_isupdated = 0;
     }
+
     if (*dpad_analog_swap_isupdated) {
         fprintf(stderr, "DPAD_ANALOG_SWAP: %d\n", *dpad_analog_swap);
         *dpad_analog_swap_isupdated = 0;
     }
+
     if (*fan_control_isupdated) {
         fprintf(stderr, "FAN_CONTROL: %d\n", *fan_control);
         *fan_control_isupdated = 0;
     }
+
 }
