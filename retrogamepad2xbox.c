@@ -17,12 +17,12 @@
 
 // Global variable declarations
 const int debug_messages_enabled = 0;
-int *abxy_layout, *abxy_layout_isupdated;
-int *performance_mode, *performance_mode_isupdated;
-int *analog_sensitivity, *analog_sensitivity_isupdated;
-int *analog_axis, *analog_axis_isupdated;
-int *dpad_analog_swap, *dpad_analog_swap_isupdated;
-int *fan_control, *fan_control_isupdated;
+int *abxy_layout, *abxy_layout_isupdated, abxy_layout_isupdated_local;
+int *performance_mode, *performance_mode_isupdated, performance_mode_isupdated_local;
+int *analog_sensitivity, *analog_sensitivity_isupdated, analog_sensitivity_isupdated_local;
+int *analog_axis, *analog_axis_isupdated, analog_axis_isupdated_local ;
+int *dpad_analog_swap, *dpad_analog_swap_isupdated, dpad_analog_swap_isupdated_local;
+int *fan_control, *fan_control_isupdated, fan_control_isupdated_local;
 
 // File descriptors for locking memory maps
 int fd_abxy_layout, fd_abxy_layout_isupdated;
@@ -45,19 +45,15 @@ static int get_retroarch_status();
 static void set_performance_mode_toggle_status(int value);
 static int get_screen_status();
 static int openAndMap(const char* filePath, int** shared_data, int* fd);
-static void lockFile(int fd);
-static void unlockFile(int fd);
 static void setupMaps();
-static void lockMaps();
-static void unlockMaps();
-static void printUpdatedValues();
+static void updateMapVars();
+
 
 ///////////////////
 
 static void bus_error_handler(int sig) {
     // Log the bus error
     fprintf(stderr, "Caught bus error (signal %d). Ignoring it.\n", sig);
-    // Optionally, you can implement additional logic here
 }
 
 
@@ -289,9 +285,6 @@ int main(void) {
         int performancemodetoggle = get_performance_mode_toggle_status();
         set_performance_mode_toggle_status(performancemodetoggle);
 		
-		send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Analog Swap' 'Analog Swap' 'Analog/Dpad Swap deactivated - Hold down L1+R1+Y to activate.' \"");
-		send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Analog/Dpad Swap dectivated - Hold down L1+R1+Y to activate.' -n bellavita.toast/.MainActivity\"");
-		
 		// Check for screen on
 		int screenison = 1;
 		int isadjustingbrightness = 0;
@@ -312,9 +305,12 @@ int main(void) {
 				//Read input on volume and power buttons
 				if (count % 1000 == 0) {
                    screenison = get_screen_status();
-
                 }
-
+				
+				//Update maps to local vars
+				if (count % 500 == 0) {
+				   updateMapVars();
+                }
 
                 read(physical_gpio_keys, & gpioie, sizeof(struct input_event));
                 // Read physical gpio-keys inputs
@@ -441,7 +437,7 @@ int main(void) {
 
                         // DPAD UP/DOWN
                         if (ie.code == 17) {
-								if (dpadanalogswap == 1) {
+								if (*dpad_analog_swap == 1) {
 									//PHYSICAL_HAT_Y = 0; 
 									if (ie.value == 0) {PHYSICAL_ABS_Y = 0;} 
 									if (ie.value == 1) {PHYSICAL_ABS_Y = 1800;} 
@@ -452,7 +448,7 @@ int main(void) {
 
                         // DPAD LEFT/RIGHT
                         if (ie.code == 16) {
-								if (dpadanalogswap == 1) {
+								if (*dpad_analog_swap == 1) {
 									//PHYSICAL_HAT_X = 0; 
 									if (ie.value == 0) {PHYSICAL_ABS_X = 0;} 
 									if (ie.value == 1) {PHYSICAL_ABS_X = 1800;} 
@@ -463,7 +459,7 @@ int main(void) {
 
                         // LEFT ANALOG Y
                         if (ie.code == 1) {
-								if (dpadanalogswap == 1) {
+								if (*dpad_analog_swap == 1) {
 									//PHYSICAL_ABS_Y = 0; 
 									if (ie.value < 1000 && ie.value > -1000) {PHYSICAL_HAT_Y = 0;} 
 									if (ie.value >= 1000) {PHYSICAL_HAT_Y = 1;} 
@@ -474,7 +470,7 @@ int main(void) {
 
                         // LEFT ANALOG X
                         if (ie.code == 0) {
-								if (dpadanalogswap == 1) {
+								if (*dpad_analog_swap == 1) {
 									//PHYSICAL_ABS_X = 0; 
 									if (ie.value < 1000 && ie.value > -1000) {PHYSICAL_HAT_X = 0;} 
 									if (ie.value >= 1000) {PHYSICAL_HAT_X = 1;} 
@@ -797,20 +793,37 @@ if (screenison == 1 || (screenison == 0 && PHYSICAL_BTN_POWER == 1))
                         ++dpadtogglecount;
 
                         if (dpadtogglecount > 400) {
-                                if (dpadanalogswap == 0) {
+                                if (*dpad_analog_swap == 0) {
 
                                         dpadtogglepresscomplete = 1;
-                                        dpadanalogswap = 1;
+                                        *dpad_analog_swap = 1;
 										send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Analog Swap' 'Analog Swap' 'Analog/Dpad Swap activated - Hold down L1+R1+Y to deactivate.' \"");
 										send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Analog/Dpad Swap activated - Hold down L1+R1+Y to deactivate.' -n bellavita.toast/.MainActivity\"");
+										*dpad_analog_swap_isupdated = 0;
                                 } else {
                                         dpadtogglepresscomplete = 1;
-                                        dpadanalogswap = 0;
+                                        *dpad_analog_swap = 0;
 										send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Analog Swap' 'Analog Swap' 'Analog/Dpad Swap deactivated - Hold down L1+R1+Y to activate.' \"");
 										send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Analog/Dpad Swap dectivated - Hold down L1+R1+Y to activate.' -n bellavita.toast/.MainActivity\"");
+										*dpad_analog_swap_isupdated = 0;
                                 }
                         }
                 }
+				
+				if (dpad_analog_swap_isupdated_local == 1) {
+				
+						if (*dpad_analog_swap == 1) {
+								send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Analog Swap' 'Analog Swap' 'Analog/Dpad Swap activated - Hold down L1+R1+Y to deactivate.' \"");
+								send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Analog/Dpad Swap activated - Hold down L1+R1+Y to deactivate.' -n bellavita.toast/.MainActivity\"");
+
+						} else {
+								send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Analog Swap' 'Analog Swap' 'Analog/Dpad Swap deactivated - Hold down L1+R1+Y to activate.' \"");
+								send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Analog/Dpad Swap dectivated - Hold down L1+R1+Y to activate.' -n bellavita.toast/.MainActivity\"");
+						}
+					
+					dpad_analog_swap_isupdated_local = 0;
+					*dpad_analog_swap_isupdated = 0;	
+				}
 
                 if (PHYSICAL_BTN_Y == 0 && PHYSICAL_BTN_TL == 0 && PHYSICAL_BTN_TR == 0) {
                         dpadtogglecount = 0;
@@ -826,21 +839,6 @@ if (screenison == 1 || (screenison == 0 && PHYSICAL_BTN_POWER == 1))
 				if (PHYSICAL_BTN_HOME == 0)
 				{
 					homepressed = 0;
-				}
-				
-				
-				
-				// Check if anything updated on memory maps
-				
-				if (count % 50 == 0) {
-					lockMaps();
-					ismapslocked = 1;
-				}
-				
-				if (count % 250 == 0 && ismapslocked == 1) {
-					printUpdatedValues();
-					unlockMaps();
-					ismapslocked = 0;
 				}
 				
 }
@@ -1080,25 +1078,6 @@ static int openAndMap(const char* filePath, int** shared_data, int* fd) {
     return 0;
 }
 
-static void lockFile(int fd) {
-    int attempts = 0;
-    while (flock(fd, LOCK_EX) == -1) {
-        if (errno != EINTR) {
-            fprintf(stderr, "Attempt %d: Error locking file, retrying...\n", ++attempts);
-            usleep(RETRY_DELAY);
-        }
-    }
-
-}
-
-static void unlockFile(int fd) {
-    if (flock(fd, LOCK_UN) == -1) {
-        fprintf(stderr, "Error unlocking file\n");
-    } else {
-        //fprintf(stderr, "File unlocked\n");
-    }
-}
-
 static void setupMaps() {
     struct stat st = {0};
     if (stat(DIRECTORY_PATH, &st) == -1) {
@@ -1130,69 +1109,11 @@ static void setupMaps() {
     openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "FAN_CONTROL_ISUPDATED"), &fan_control_isupdated, &fd_fan_control_isupdated);
 }
 
-static void lockMaps()
-{
-    lockFile(fd_abxy_layout);
-    lockFile(fd_abxy_layout_isupdated);
-    lockFile(fd_performance_mode);
-    lockFile(fd_performance_mode_isupdated);
-    lockFile(fd_analog_sensitivity);
-    lockFile(fd_analog_sensitivity_isupdated);
-    lockFile(fd_analog_axis);
-    lockFile(fd_analog_axis_isupdated);
-    lockFile(fd_dpad_analog_swap);
-    lockFile(fd_dpad_analog_swap_isupdated);
-    lockFile(fd_fan_control);
-    lockFile(fd_fan_control_isupdated);
-}
-
-static void unlockMaps()
-{
-    unlockFile(fd_abxy_layout_isupdated);
-    unlockFile(fd_abxy_layout);
-    unlockFile(fd_performance_mode_isupdated);
-    unlockFile(fd_performance_mode);
-    unlockFile(fd_analog_sensitivity_isupdated);
-    unlockFile(fd_analog_sensitivity);
-    unlockFile(fd_analog_axis_isupdated);
-    unlockFile(fd_analog_axis);
-    unlockFile(fd_dpad_analog_swap_isupdated);
-    unlockFile(fd_dpad_analog_swap);
-    unlockFile(fd_fan_control_isupdated);
-    unlockFile(fd_fan_control);
-}
-
-// Print values if anything = 1 in _isupdated, then set isupdated toggle back to 0. Updates global variables.
-static void printUpdatedValues() {
-
-    if (*abxy_layout_isupdated) {
-        fprintf(stderr, "ABXY_LAYOUT: %d\n", *abxy_layout);
-        *abxy_layout_isupdated = 0;
-    }
-
-    if (*performance_mode_isupdated) {
-        fprintf(stderr, "PERFORMANCE_MODE: %d\n", *performance_mode);
-        *performance_mode_isupdated = 0;
-    }
-
-    if (*analog_sensitivity_isupdated) {
-        fprintf(stderr, "ANALOG_SENSITIVITY: %d\n", *analog_sensitivity);
-        *analog_sensitivity_isupdated = 0;
-    }
-
-    if (*analog_axis_isupdated) {
-        fprintf(stderr, "ANALOG_AXIS: %d\n", *analog_axis);
-        *analog_axis_isupdated = 0;
-    }
-
-    if (*dpad_analog_swap_isupdated) {
-        fprintf(stderr, "DPAD_ANALOG_SWAP: %d\n", *dpad_analog_swap);
-        *dpad_analog_swap_isupdated = 0;
-    }
-
-    if (*fan_control_isupdated) {
-        fprintf(stderr, "FAN_CONTROL: %d\n", *fan_control);
-        *fan_control_isupdated = 0;
-    }
-
+static void updateMapVars() {
+	abxy_layout_isupdated_local = *abxy_layout_isupdated;
+	performance_mode_isupdated_local = *performance_mode_isupdated;
+	analog_sensitivity_isupdated_local = *analog_sensitivity_isupdated;
+	analog_axis_isupdated_local = *analog_axis_isupdated;
+	dpad_analog_swap_isupdated_local = *dpad_analog_swap_isupdated;
+	fan_control_isupdated_local = *fan_control_isupdated;
 }
