@@ -308,13 +308,13 @@ int main(void) {
 						* fan_control_isupdated = 0;
 				}
 				
-                if (count % 5000 == 0) {
+                if (count % 2500 == 0) {
 						fanControl();
 						if (* fan_control == 1) {
 							int currentTemp = get_cpu_temp();
-							if (currentTemp < 50) {send_shell_command("/system/bin/setfan_off.sh");}
-							if (currentTemp >= 50 && currentTemp < 65) {send_shell_command("/system/bin/setfan_cool.sh");}
-							if (currentTemp >= 65) {send_shell_command("/system/bin/setfan_max.sh");}
+							if (currentTemp < 60) {send_shell_command("/system/bin/setfan_off.sh");}
+							if (currentTemp >= 60 && currentTemp < 75) {send_shell_command("/system/bin/setfan_cool.sh");}
+							if (currentTemp >= 75) {send_shell_command("/system/bin/setfan_max.sh");}
 						}
                 }
 
@@ -663,7 +663,7 @@ int main(void) {
                 ev[31].value = 0;
 				
 				// Check if screen is off periodically, and make sure to turn the fan off.
-				if (screenison == 0 && count % 5000 == 0) {send_shell_command("/system/bin/setfan_off.sh");}
+				if (screenison == 0 && count % 2500 == 0) {send_shell_command("/system/bin/setfan_off.sh");}
 
                 if (screenison == 1 || (screenison == 0 && PHYSICAL_BTN_POWER == 1)) {
 
