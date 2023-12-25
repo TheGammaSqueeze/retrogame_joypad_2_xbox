@@ -56,6 +56,8 @@ static int get_screen_status();
 static int openAndMap(const char * filePath, int ** shared_data, int * fd);
 static void setupMaps();
 static void updateMapVars();
+static void fanControl();
+static int get_cpu_temp();
 
 ///////////////////
 
@@ -297,6 +299,26 @@ int main(void) {
                 if (count % 500 == 0) {
                         updateMapVars();
                 }
+				
+				
+				// Fan stuff
+				if (fan_control_isupdated_local == 1) {
+						fanControl();
+						fan_control_isupdated_local = 0;
+						* fan_control_isupdated = 0;
+				}
+				
+                if (count % 5000 == 0) {
+						fanControl();
+						if (* fan_control == 1) {
+							int currentTemp = get_cpu_temp();
+							if (currentTemp < 50) {send_shell_command("/system/bin/setfan_off.sh");}
+							if (currentTemp >= 50 && currentTemp < 65) {send_shell_command("/system/bin/setfan_cool.sh");}
+							if (currentTemp >= 65) {send_shell_command("/system/bin/setfan_max.sh");}
+						}
+                }
+
+
 
                 read(physical_gpio_keys, & gpioie, sizeof(struct input_event));
                 // Read physical gpio-keys inputs
@@ -639,6 +661,9 @@ int main(void) {
                 ev[31].type = EV_SYN;
                 ev[31].code = SYN_REPORT;
                 ev[31].value = 0;
+				
+				// Check if screen is off periodically, and make sure to turn the fan off.
+				if (screenison == 0 && count % 5000 == 0) {send_shell_command("/system/bin/setfan_off.sh");}
 
                 if (screenison == 1 || (screenison == 0 && PHYSICAL_BTN_POWER == 1)) {
 
@@ -1077,4 +1102,32 @@ static void updateMapVars() {
         analog_axis_isupdated_local = * analog_axis_isupdated;
         dpad_analog_swap_isupdated_local = * dpad_analog_swap_isupdated;
         fan_control_isupdated_local = * fan_control_isupdated;
+}
+
+// Updates the fan behaviour depending on the set parameter
+static void fanControl() {
+		switch(* fan_control) {
+			case 0:
+				send_shell_command("/system/bin/setfan_off.sh");
+			break;
+			case 1:
+				send_shell_command("/system/bin/setfan_auto.sh");
+			break;
+			case 2:
+				send_shell_command("/system/bin/setfan_cool.sh");
+			break;
+			case 3:
+				send_shell_command("/system/bin/setfan_max.sh");
+			break;
+			default:
+				send_shell_command("/system/bin/setfan_off.sh");
+		}
+}
+
+// Get CPU Package Temperature
+static int get_cpu_temp() {
+        // Check the current value
+        int current_cpu_temp = atoi(send_shell_command("cat /sys/class/thermal/thermal_zone*/temp 2>/dev/null | awk '{sum += $1; n++} END {if (n > 0) print int((sum / n + 99) / 1000)}'"));
+
+        return current_cpu_temp;
 }
