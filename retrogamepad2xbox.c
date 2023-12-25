@@ -281,11 +281,6 @@ int main(void) {
         int screenison = 1;
         int isadjustingbrightness = 0;
 
-        // Check if swap left analog to dpad
-        int dpadanalogswap = 0;
-        int dpadtogglecount = 0;
-        int dpadtogglepresscomplete = 0;
-
         int menutoggleactivated = 0;
         int menutogglecompleted = 0;
 
@@ -819,47 +814,6 @@ int main(void) {
                                 performancemodetogglepresscomplete = 0;
                         }
 
-                        // Add logic for switching between analog controller layout
-                        if (PHYSICAL_BTN_Y == 1 && PHYSICAL_BTN_TL == 1 && PHYSICAL_BTN_TR == 1 && dpadtogglepresscomplete == 0) {
-                                ++dpadtogglecount;
-
-                                if (dpadtogglecount > 400) {
-                                        if ( * dpad_analog_swap == 0) {
-
-                                                dpadtogglepresscomplete = 1;
-                                                * dpad_analog_swap = 1;
-                                                send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Analog Swap' 'Analog Swap' 'Analog/Dpad Swap activated - Hold down L1+R1+Y to deactivate.' \"");
-                                                send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Analog/Dpad Swap activated - Hold down L1+R1+Y to deactivate.' -n bellavita.toast/.MainActivity\"");
-                                                * dpad_analog_swap_isupdated = 0;
-                                        } else {
-                                                dpadtogglepresscomplete = 1;
-                                                * dpad_analog_swap = 0;
-                                                send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Analog Swap' 'Analog Swap' 'Analog/Dpad Swap deactivated - Hold down L1+R1+Y to activate.' \"");
-                                                send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Analog/Dpad Swap dectivated - Hold down L1+R1+Y to activate.' -n bellavita.toast/.MainActivity\"");
-                                                * dpad_analog_swap_isupdated = 0;
-                                        }
-                                }
-                        }
-
-                        if (dpad_analog_swap_isupdated_local == 1) {
-
-                                if ( * dpad_analog_swap == 1) {
-                                        send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Analog Swap' 'Analog Swap' 'Analog/Dpad Swap activated - Hold down L1+R1+Y to deactivate.' \"");
-                                        send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Analog/Dpad Swap activated - Hold down L1+R1+Y to deactivate.' -n bellavita.toast/.MainActivity\"");
-
-                                } else {
-                                        send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Analog Swap' 'Analog Swap' 'Analog/Dpad Swap deactivated - Hold down L1+R1+Y to activate.' \"");
-                                        send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Analog/Dpad Swap dectivated - Hold down L1+R1+Y to activate.' -n bellavita.toast/.MainActivity\"");
-                                }
-
-                                dpad_analog_swap_isupdated_local = 0;
-                                * dpad_analog_swap_isupdated = 0;
-                        }
-
-                        if (PHYSICAL_BTN_Y == 0 && PHYSICAL_BTN_TL == 0 && PHYSICAL_BTN_TR == 0) {
-                                dpadtogglecount = 0;
-                                dpadtogglepresscomplete = 0;
-                        }
 
                         if (PHYSICAL_BTN_HOME == 1 && homepressed == 0) {
                                 send_shell_command("input keyevent 3");
