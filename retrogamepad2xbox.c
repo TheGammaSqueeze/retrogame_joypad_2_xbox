@@ -50,6 +50,7 @@ static int lcd_brightness(int value);
 static int get_retroarch_status();
 static void set_performance_mode();
 static int get_screen_status();
+static int get_fan_status();
 static int openAndMap(const char * filePath, int ** shared_data, int * fd);
 static void setupMaps();
 static void updateMapVars();
@@ -269,19 +270,24 @@ int main(void) {
         int menutoggleactivated = 0;
         int menutogglecompleted = 0;
 
-        int ismapslocked = 0;
+        int isfanturnedoffduringsleep = 0;
+        int fanison = 0;
         set_performance_mode();
 
         while (1) {
 
-                //Read input on volume and power buttons
-                if (count % 1000 == 0) {
+                // Update screen status and MMAP variables
+                if (count % 250 == 0) {
                         screenison = get_screen_status();
+                        if (fan_control_isenabled_local == 1) {
+                                fanison = get_fan_status();
+                        }
+                        updateMapVars();
                 }
 
-                //Update maps to local vars
-                if (count % 500 == 0) {
-                        updateMapVars();
+                // Check if screen is off, and make sure to turn the fan off.
+                if (screenison == 0 && fan_control_isenabled_local == 1 && fanison == 1) {
+                        send_shell_command("/system/bin/setfan_off.sh");
                 }
 
                 read(physical_gpio_keys, & gpioie, sizeof(struct input_event));
@@ -650,11 +656,6 @@ int main(void) {
                 ev[31].code = SYN_REPORT;
                 ev[31].value = 0;
 
-                // Check if screen is off periodically, and make sure to turn the fan off.
-                if (screenison == 0 && count % 2500 == 0 && fan_control_isenabled_local == 1) {
-                        send_shell_command("/system/bin/setfan_off.sh");
-                }
-
                 if (screenison == 1 || (screenison == 0 && PHYSICAL_BTN_POWER == 1)) {
 
                         // Fan stuff
@@ -665,7 +666,9 @@ int main(void) {
                         }
 
                         if (count % 2500 == 0 && fan_control_isenabled_local == 1) {
-                                fanControl();
+                                if (screenison == 1) {
+                                        fanControl();
+                                }
                                 if ( * fan_control == 1) {
                                         int currentTemp = get_cpu_temp();
                                         if (currentTemp < 60) {
@@ -929,23 +932,29 @@ static void set_performance_mode() {
 // Get current screen status
 static int get_screen_status() {
 
-        int screenstatus = 1;
+        int screenstatus = atoi(send_shell_command("cat /sys/devices/platform/sprd_backlight/backlight/sprd_backlight/brightness"));
 
-        char cmd_screen_status[100];
-
-        sprintf(cmd_screen_status, "%s", send_shell_command("dumpsys display | grep mScreenState"));
-
-        if (strstr(cmd_screen_status, "mScreenState=OFF") != NULL) {
-                screenstatus = 0;
-        } else {
+        if (screenstatus != 0) {
                 screenstatus = 1;
-        }
-
-        if (debug_messages_enabled == 1) {
-                fprintf(stderr, "%i", screenstatus);
+        } else {
+                screenstatus = 0;
         }
 
         return screenstatus;
+}
+
+// Get current fan status
+static int get_fan_status() {
+
+        int fanstatus = atoi(send_shell_command("cat /sys/devices/platform/singleadc-joypad/fan_power"));
+
+        if (fanstatus != 0) {
+                fanstatus = 1;
+        } else {
+                fanstatus = 0;
+        }
+
+        return fanstatus;
 }
 
 // Create or open memory maps containing different toggles to be used by both rgp2xbox and SystemUI, allow access from any process without root required. 
