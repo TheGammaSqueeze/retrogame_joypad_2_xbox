@@ -47,8 +47,6 @@ static void bus_error_handler(int sig);
 static void setup_abs(int fd, unsigned chan, int min, int max);
 static char * send_shell_command(char * shellcmd);
 static int lcd_brightness(int value);
-static int get_xbox_toggle_status();
-static void set_xbox_toggle_status(int value);
 static int get_performance_mode_toggle_status();
 static int get_retroarch_status();
 static void set_performance_mode_toggle_status(int value);
@@ -264,13 +262,6 @@ int main(void) {
         int backcount = 0;
         int backpresscomplete = 0;
         int homepresscomplete = 0;
-
-        int xboxtogglecount = 0;
-        int xboxtogglepresscomplete = 0;
-
-        // Add persistence across reboots for xbox button layout settings
-        int xboxtoggle = get_xbox_toggle_status();
-        set_xbox_toggle_status(xboxtoggle);
 
         int performancemodetogglecount = 0;
         int performancemodetogglepresscomplete = 0;
@@ -510,11 +501,19 @@ int main(void) {
                 }
 
                 ev[0].type = EV_KEY;
-                ev[0].code = BTN_A;
+                if ( * abxy_layout == 0) {
+                        ev[0].code = BTN_A;
+                } else {
+                        ev[0].code = BTN_B;
+                }
                 ev[0].value = PHYSICAL_BTN_A;
 
                 ev[1].type = EV_KEY;
-                ev[1].code = BTN_B;
+                if ( * abxy_layout == 0) {
+                        ev[1].code = BTN_B;
+                } else {
+                        ev[1].code = BTN_A;
+                }
                 ev[1].value = PHYSICAL_BTN_B;
 
                 ev[2].type = EV_KEY;
@@ -562,11 +561,19 @@ int main(void) {
                 ev[12].value = VIRTUAL_BTN_MODE;
 
                 ev[13].type = EV_KEY;
-                ev[13].code = BTN_X;
+                if ( * abxy_layout == 0) {
+                        ev[13].code = BTN_X;
+                } else {
+                        ev[13].code = BTN_Y;
+                }
                 ev[13].value = PHYSICAL_BTN_X;
 
                 ev[14].type = EV_KEY;
-                ev[14].code = BTN_Y;
+                if ( * abxy_layout == 0) {
+                        ev[14].code = BTN_Y;
+                } else {
+                        ev[14].code = BTN_X;
+                }
                 ev[14].value = PHYSICAL_BTN_Y;
 
                 ev[15].type = EV_KEY;
@@ -787,32 +794,6 @@ int main(void) {
                                 menutogglecompleted = 1;
                         }
 
-                        // Add logic for switching between xbox controller layout
-                        if ((PHYSICAL_BTN_Z == 1 || PHYSICAL_BTN_THUMBL == 1) && PHYSICAL_BTN_TL == 1 && PHYSICAL_BTN_TR == 1 && xboxtogglepresscomplete == 0) {
-                                ++xboxtogglecount;
-
-                                if (xboxtogglecount > 400) {
-                                        if (xboxtoggle == 0) {
-
-                                                set_xbox_toggle_status(1);
-
-                                                xboxtogglepresscomplete = 1;
-                                                xboxtoggle = 1;
-                                        } else {
-
-                                                set_xbox_toggle_status(0);
-
-                                                xboxtogglepresscomplete = 1;
-                                                xboxtoggle = 0;
-                                        }
-                                }
-                        }
-
-                        if (PHYSICAL_BTN_Z == 0 && PHYSICAL_BTN_THUMBL == 0 && PHYSICAL_BTN_TL == 0 && PHYSICAL_BTN_TR == 0) {
-                                xboxtogglecount = 0;
-                                xboxtogglepresscomplete = 0;
-                        }
-
                         // Add logic for switching between performance mode
                         if ((PHYSICAL_BTN_C == 1 || PHYSICAL_BTN_THUMBR == 1) && PHYSICAL_BTN_TL == 1 && PHYSICAL_BTN_TR == 1 && performancemodetogglepresscomplete == 0) {
                                 ++performancemodetogglecount;
@@ -936,34 +917,6 @@ static int lcd_brightness(int value) {
                 fprintf(stderr, "New brightness: %i\n", current_brightness);
         }
         return current_brightness;
-}
-
-// Get current xbox layout toggle status
-static int get_xbox_toggle_status() {
-
-        // Check the current value via the getprop shell command, return 0 if no valid property exists yet
-        int current_toggle_status = atoi(send_shell_command("buttontogglesetting=$(getprop persist.rgp2xbox.toggleenabled) && ([ -z $buttontogglesetting ] && echo 0 || echo $buttontogglesetting)"));
-        if (debug_messages_enabled == 1) {
-                fprintf(stderr, "Controller toggle status: %i\n", current_toggle_status);
-        }
-
-        return current_toggle_status;
-}
-
-// Set current xbox layout toggle status
-static void set_xbox_toggle_status(int value) {
-
-        if (value == 1) {
-                send_shell_command("echo 1 > /sys/devices/platform/singleadc-joypad/remapkey_xbox_switch");
-                send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Remapping' 'Remapping' 'Xbox Button Mapping Activated - Hold down L1+R1+L3/Z to deactivate.' \"");
-                send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Xbox Button Mapping Activated - Hold down L1+R1+L3/Z to deactivate' -n bellavita.toast/.MainActivity\"");
-                send_shell_command("setprop persist.rgp2xbox.toggleenabled 1");
-        } else {
-                send_shell_command("echo 0 > /sys/devices/platform/singleadc-joypad/remapkey_xbox_switch");
-                send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Remapping' 'Remapping' 'Xbox Button Mapping Deactivated - Hold down L1+R1+L3/Z  to activate.' \"");
-                send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Xbox Button Mapping Deactivated - Hold down L1+R1+L3/Z  to activate.' -n bellavita.toast/.MainActivity\"");
-                send_shell_command("setprop persist.rgp2xbox.toggleenabled 0");
-        }
 }
 
 // Get current performance mode toggle status
