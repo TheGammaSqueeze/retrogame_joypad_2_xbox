@@ -299,26 +299,6 @@ int main(void) {
                 if (count % 500 == 0) {
                         updateMapVars();
                 }
-				
-				
-				// Fan stuff
-				if (fan_control_isupdated_local == 1) {
-						fanControl();
-						fan_control_isupdated_local = 0;
-						* fan_control_isupdated = 0;
-				}
-				
-                if (count % 2500 == 0) {
-						fanControl();
-						if (* fan_control == 1) {
-							int currentTemp = get_cpu_temp();
-							if (currentTemp < 60) {send_shell_command("/system/bin/setfan_off.sh");}
-							if (currentTemp >= 60 && currentTemp < 75) {send_shell_command("/system/bin/setfan_cool.sh");}
-							if (currentTemp >= 75) {send_shell_command("/system/bin/setfan_max.sh");}
-						}
-                }
-
-
 
                 read(physical_gpio_keys, & gpioie, sizeof(struct input_event));
                 // Read physical gpio-keys inputs
@@ -666,6 +646,23 @@ int main(void) {
 				if (screenison == 0 && count % 2500 == 0) {send_shell_command("/system/bin/setfan_off.sh");}
 
                 if (screenison == 1 || (screenison == 0 && PHYSICAL_BTN_POWER == 1)) {
+
+						// Fan stuff
+						if (fan_control_isupdated_local == 1) {
+								fanControl();
+								fan_control_isupdated_local = 0;
+								* fan_control_isupdated = 0;
+						}
+						
+						if (count % 2500 == 0) {
+								fanControl();
+								if (* fan_control == 1) {
+									int currentTemp = get_cpu_temp();
+									if (currentTemp < 60) {send_shell_command("/system/bin/setfan_off.sh");}
+									if (currentTemp >= 60 && currentTemp < 75) {send_shell_command("/system/bin/setfan_cool.sh");}
+									if (currentTemp >= 75) {send_shell_command("/system/bin/setfan_max.sh");}
+								}
+						}
 
                         if (write(fd, & ev, sizeof ev) < 0) {
                                 perror("write");
