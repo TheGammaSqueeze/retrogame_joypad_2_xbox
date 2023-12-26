@@ -32,7 +32,7 @@ int * performance_mode, * performance_mode_isupdated, performance_mode_isupdated
 int * analog_sensitivity, * analog_sensitivity_isupdated, analog_sensitivity_isupdated_local;
 int * analog_axis, * analog_axis_isupdated, analog_axis_isupdated_local;
 int * dpad_analog_swap, * dpad_analog_swap_isupdated, dpad_analog_swap_isupdated_local;
-int * fan_control, * fan_control_isupdated, fan_control_isupdated_local;
+int * fan_control, * fan_control_isupdated, fan_control_isupdated_local, * fan_control_isenabled, fan_control_isenabled_local;
 
 // File descriptors for locking memory maps
 int fd_abxy_layout, fd_abxy_layout_isupdated;
@@ -40,7 +40,7 @@ int fd_performance_mode, fd_performance_mode_isupdated;
 int fd_analog_sensitivity, fd_analog_sensitivity_isupdated;
 int fd_analog_axis, fd_analog_axis_isupdated;
 int fd_dpad_analog_swap, fd_dpad_analog_swap_isupdated;
-int fd_fan_control, fd_fan_control_isupdated;
+int fd_fan_control, fd_fan_control_isupdated, fd_fan_control_isenabled;
 
 // Method declarations
 static void bus_error_handler(int sig);
@@ -641,28 +641,36 @@ int main(void) {
                 ev[31].type = EV_SYN;
                 ev[31].code = SYN_REPORT;
                 ev[31].value = 0;
-				
-				// Check if screen is off periodically, and make sure to turn the fan off.
-				if (screenison == 0 && count % 2500 == 0) {send_shell_command("/system/bin/setfan_off.sh");}
+
+                // Check if screen is off periodically, and make sure to turn the fan off.
+                if (screenison == 0 && count % 2500 == 0 && fan_control_isenabled_local == 1) {
+                        send_shell_command("/system/bin/setfan_off.sh");
+                }
 
                 if (screenison == 1 || (screenison == 0 && PHYSICAL_BTN_POWER == 1)) {
 
-						// Fan stuff
-						if (fan_control_isupdated_local == 1) {
-								fanControl();
-								fan_control_isupdated_local = 0;
-								* fan_control_isupdated = 0;
-						}
-						
-						if (count % 2500 == 0) {
-								fanControl();
-								if (* fan_control == 1) {
-									int currentTemp = get_cpu_temp();
-									if (currentTemp < 60) {send_shell_command("/system/bin/setfan_off.sh");}
-									if (currentTemp >= 60 && currentTemp < 75) {send_shell_command("/system/bin/setfan_cool.sh");}
-									if (currentTemp >= 75) {send_shell_command("/system/bin/setfan_max.sh");}
-								}
-						}
+                        // Fan stuff
+                        if (fan_control_isupdated_local == 1 && fan_control_isenabled_local == 1) {
+                                fanControl();
+                                fan_control_isupdated_local = 0;
+                                * fan_control_isupdated = 0;
+                        }
+
+                        if (count % 2500 == 0 && fan_control_isenabled_local == 1) {
+                                fanControl();
+                                if ( * fan_control == 1) {
+                                        int currentTemp = get_cpu_temp();
+                                        if (currentTemp < 60) {
+                                                send_shell_command("/system/bin/setfan_off.sh");
+                                        }
+                                        if (currentTemp >= 60 && currentTemp < 75) {
+                                                send_shell_command("/system/bin/setfan_cool.sh");
+                                        }
+                                        if (currentTemp >= 75) {
+                                                send_shell_command("/system/bin/setfan_max.sh");
+                                        }
+                                }
+                        }
 
                         if (write(fd, & ev, sizeof ev) < 0) {
                                 perror("write");
@@ -835,7 +843,6 @@ int main(void) {
                                 performancemodetogglecount = 0;
                                 performancemodetogglepresscomplete = 0;
                         }
-
 
                         if (PHYSICAL_BTN_HOME == 1 && homepressed == 0) {
                                 send_shell_command("input keyevent 3");
@@ -1090,6 +1097,7 @@ static void setupMaps() {
 
         openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "FAN_CONTROL"), & fan_control, & fd_fan_control);
         openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "FAN_CONTROL_ISUPDATED"), & fan_control_isupdated, & fd_fan_control_isupdated);
+        openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "FAN_CONTROL_ISENABLED"), & fan_control_isenabled, & fd_fan_control_isenabled);
 }
 
 static void updateMapVars() {
@@ -1099,26 +1107,27 @@ static void updateMapVars() {
         analog_axis_isupdated_local = * analog_axis_isupdated;
         dpad_analog_swap_isupdated_local = * dpad_analog_swap_isupdated;
         fan_control_isupdated_local = * fan_control_isupdated;
+        fan_control_isenabled_local = * fan_control_isenabled;
 }
 
 // Updates the fan behaviour depending on the set parameter
 static void fanControl() {
-		switch(* fan_control) {
-			case 0:
-				send_shell_command("/system/bin/setfan_off.sh");
-			break;
-			case 1:
-				send_shell_command("/system/bin/setfan_auto.sh");
-			break;
-			case 2:
-				send_shell_command("/system/bin/setfan_cool.sh");
-			break;
-			case 3:
-				send_shell_command("/system/bin/setfan_max.sh");
-			break;
-			default:
-				send_shell_command("/system/bin/setfan_off.sh");
-		}
+        switch ( * fan_control) {
+        case 0:
+                send_shell_command("/system/bin/setfan_off.sh");
+                break;
+        case 1:
+                send_shell_command("/system/bin/setfan_auto.sh");
+                break;
+        case 2:
+                send_shell_command("/system/bin/setfan_cool.sh");
+                break;
+        case 3:
+                send_shell_command("/system/bin/setfan_max.sh");
+                break;
+        default:
+                send_shell_command("/system/bin/setfan_off.sh");
+        }
 }
 
 // Get CPU Package Temperature
