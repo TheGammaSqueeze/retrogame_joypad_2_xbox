@@ -47,9 +47,8 @@ static void bus_error_handler(int sig);
 static void setup_abs(int fd, unsigned chan, int min, int max);
 static char * send_shell_command(char * shellcmd);
 static int lcd_brightness(int value);
-static int get_performance_mode_toggle_status();
 static int get_retroarch_status();
-static void set_performance_mode_toggle_status(int value);
+static void set_performance_mode();
 static int get_screen_status();
 static int openAndMap(const char * filePath, int ** shared_data, int * fd);
 static void setupMaps();
@@ -263,13 +262,6 @@ int main(void) {
         int backpresscomplete = 0;
         int homepresscomplete = 0;
 
-        int performancemodetogglecount = 0;
-        int performancemodetogglepresscomplete = 0;
-
-        // Add persistence across reboots for performance mode settings
-        int performancemodetoggle = get_performance_mode_toggle_status();
-        set_performance_mode_toggle_status(performancemodetoggle);
-
         // Check for screen on
         int screenison = 1;
         int isadjustingbrightness = 0;
@@ -278,6 +270,7 @@ int main(void) {
         int menutogglecompleted = 0;
 
         int ismapslocked = 0;
+		set_performance_mode();
 
         while (1) {
 
@@ -795,35 +788,12 @@ int main(void) {
                         }
 
                         // Add logic for switching between performance mode
-                        if ((PHYSICAL_BTN_C == 1 || PHYSICAL_BTN_THUMBR == 1) && PHYSICAL_BTN_TL == 1 && PHYSICAL_BTN_TR == 1 && performancemodetogglepresscomplete == 0) {
-                                ++performancemodetogglecount;
-
-                                if (performancemodetogglecount > 400) {
-                                        if (performancemodetoggle == 2) {
-
-                                                set_performance_mode_toggle_status(0);
-
-                                                performancemodetogglepresscomplete = 1;
-                                                performancemodetoggle = 0;
-                                        } else if (performancemodetoggle == 1) {
-                                                set_performance_mode_toggle_status(2);
-
-                                                performancemodetogglepresscomplete = 1;
-                                                performancemodetoggle = 2;
-                                        } else {
-
-                                                set_performance_mode_toggle_status(1);
-
-                                                performancemodetogglepresscomplete = 1;
-                                                performancemodetoggle = 1;
-                                        }
-                                }
+                        if (performance_mode_isupdated_local == 1) {
+								set_performance_mode();
+								performance_mode_isupdated_local = 0;
+								* performance_mode_isupdated = 0;
                         }
 
-                        if (PHYSICAL_BTN_C == 0 && PHYSICAL_BTN_THUMBR == 0 && PHYSICAL_BTN_TL == 0 && PHYSICAL_BTN_TR == 0) {
-                                performancemodetogglecount = 0;
-                                performancemodetogglepresscomplete = 0;
-                        }
 
                         if (PHYSICAL_BTN_HOME == 1 && homepressed == 0) {
                                 send_shell_command("input keyevent 3");
@@ -919,17 +889,6 @@ static int lcd_brightness(int value) {
         return current_brightness;
 }
 
-// Get current performance mode toggle status
-static int get_performance_mode_toggle_status() {
-
-        // Check the current value via the getprop shell command, return 0 if no valid property exists yet
-        int current_toggle_status = atoi(send_shell_command("performancetogglesetting=$(getprop persist.rgp2xbox.performancemode) && ([ -z $performancetogglesetting ] && echo 1 || echo $performancetogglesetting)"));
-        if (debug_messages_enabled == 1) {
-                fprintf(stderr, "Performance toggle status: %i\n", current_toggle_status);
-        }
-
-        return current_toggle_status;
-}
 
 // Get retroarch status
 static int get_retroarch_status() {
@@ -943,30 +902,21 @@ static int get_retroarch_status() {
         return current_retroarch_status;
 }
 
-// Set current performance mode toggle status
-static void set_performance_mode_toggle_status(int value) {
-
-        if (value == 1) {
-                char perfmode[1000] = "";
-                strcat(perfmode, send_shell_command("/system/bin/setclock_max.sh"));
-                fprintf(stderr, "%s", perfmode);
-                send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Performance Mode' 'Performance Mode' 'Max Performance Mode Activated - Hold down L1+R1+R3/C to switch to normal mode.' \"");
-                send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Max Performance Mode Activated - Hold down L1+R1+R3/C to switch to normal mode.' -n bellavita.toast/.MainActivity\"");
-                send_shell_command("setprop persist.rgp2xbox.performancemode 1");
-        } else if (value == 2) {
-                char normmode[1000] = "";
-                strcat(normmode, send_shell_command("/system/bin/setclock_stock.sh"));
-                fprintf(stderr, "%s", normmode);
-                send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Performance Mode' 'Performance Mode' 'Normal Performance Mode Activated - Hold down L1+R1+R3/C to switch to power saving mode.' \"");
-                send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Normal Performance Mode Activated - Hold down L1+R1+R3/C to switch to power saving mode.' -n bellavita.toast/.MainActivity\"");
-                send_shell_command("setprop persist.rgp2xbox.performancemode 2");
-        } else {
-                char psmode[1000] = "";
-                strcat(psmode, send_shell_command("/system/bin/setclock_powersave.sh"));
-                fprintf(stderr, "%s", psmode);
-                send_shell_command("su -lp 2000 -c \"cmd notification post -S bigtext -t 'Performance Mode' 'Performance Mode' 'Power Saving Mode Activated - Hold down L1+R1+R3/C to switch to max performance mode.' \"");
-                send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Power Saving Mode Activated - Hold down L1+R1+R3/C to switch to max performance mode.' -n bellavita.toast/.MainActivity\"");
-                send_shell_command("setprop persist.rgp2xbox.performancemode 0");
+// Set current performance mode status
+static void set_performance_mode() {
+	
+        switch ( * performance_mode) {
+        case 0:
+                send_shell_command("/system/bin/setclock_max.sh");
+                break;
+        case 1:
+                send_shell_command("/system/bin/setclock_stock.sh");
+                break;
+        case 2:
+                send_shell_command("/system/bin/setclock_powersave.sh");
+                break;
+        default:
+                send_shell_command("/system/bin/setclock_max.sh");
         }
 }
 
