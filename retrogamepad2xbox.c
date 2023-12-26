@@ -270,7 +270,7 @@ int main(void) {
         int menutogglecompleted = 0;
 
         int ismapslocked = 0;
-		set_performance_mode();
+        set_performance_mode();
 
         while (1) {
 
@@ -519,11 +519,19 @@ int main(void) {
 
                 ev[4].type = EV_ABS;
                 ev[4].code = ABS_Y;
-                ev[4].value = PHYSICAL_ABS_Y;
+                if ( * analog_axis == 0) {
+                        ev[4].value = PHYSICAL_ABS_Y;
+                } else {
+                        ev[4].value = -PHYSICAL_ABS_Y;
+                }
 
                 ev[5].type = EV_ABS;
                 ev[5].code = ABS_X;
-                ev[5].value = PHYSICAL_ABS_X;
+                if ( * analog_axis == 0) {
+                        ev[5].value = PHYSICAL_ABS_X;
+                } else {
+                        ev[5].value = -PHYSICAL_ABS_X;
+                }
 
                 ev[6].type = EV_ABS;
                 ev[6].code = ABS_GAS;
@@ -789,11 +797,10 @@ int main(void) {
 
                         // Add logic for switching between performance mode
                         if (performance_mode_isupdated_local == 1) {
-								set_performance_mode();
-								performance_mode_isupdated_local = 0;
-								* performance_mode_isupdated = 0;
+                                set_performance_mode();
+                                performance_mode_isupdated_local = 0;
+                                * performance_mode_isupdated = 0;
                         }
-
 
                         if (PHYSICAL_BTN_HOME == 1 && homepressed == 0) {
                                 send_shell_command("input keyevent 3");
@@ -889,7 +896,6 @@ static int lcd_brightness(int value) {
         return current_brightness;
 }
 
-
 // Get retroarch status
 static int get_retroarch_status() {
 
@@ -904,7 +910,7 @@ static int get_retroarch_status() {
 
 // Set current performance mode status
 static void set_performance_mode() {
-	
+
         switch ( * performance_mode) {
         case 0:
                 send_shell_command("/system/bin/setclock_max.sh");
