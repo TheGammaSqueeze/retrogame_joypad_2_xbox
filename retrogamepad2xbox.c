@@ -31,6 +31,7 @@ int * abxy_layout, * abxy_layout_isupdated, abxy_layout_isupdated_local;
 int * performance_mode, * performance_mode_isupdated, performance_mode_isupdated_local;
 int * analog_sensitivity, * analog_sensitivity_isupdated, analog_sensitivity_isupdated_local;
 int * analog_axis, * analog_axis_isupdated, analog_axis_isupdated_local;
+int * rightanalog_axis, * rightanalog_axis_isupdated, rightanalog_axis_isupdated_local;
 int * dpad_analog_swap, * dpad_analog_swap_isupdated, dpad_analog_swap_isupdated_local;
 int * fan_control, * fan_control_isupdated, fan_control_isupdated_local, * fan_control_isenabled, fan_control_isenabled_local;
 
@@ -39,6 +40,7 @@ int fd_abxy_layout, fd_abxy_layout_isupdated;
 int fd_performance_mode, fd_performance_mode_isupdated;
 int fd_analog_sensitivity, fd_analog_sensitivity_isupdated;
 int fd_analog_axis, fd_analog_axis_isupdated;
+int fd_rightanalog_axis, fd_rightanalog_axis_isupdated;
 int fd_dpad_analog_swap, fd_dpad_analog_swap_isupdated;
 int fd_fan_control, fd_fan_control_isupdated, fd_fan_control_isenabled;
 
@@ -557,7 +559,11 @@ int main(void) {
 
                 ev[10].type = EV_ABS;
                 ev[10].code = ABS_Z;
-                ev[10].value = PHYSICAL_ABS_Z;
+                if ( * rightanalog_axis == 0) {
+                        ev[10].value = PHYSICAL_ABS_Z;
+                } else {
+                        ev[10].value = -PHYSICAL_ABS_Z;
+                }
 
                 ev[11].type = EV_KEY;
                 ev[11].code = BTN_TR;
@@ -614,10 +620,14 @@ int main(void) {
                 ev[22].type = EV_ABS;
                 ev[22].code = ABS_HAT0X;
                 ev[22].value = PHYSICAL_HAT_X;
-
+				
                 ev[23].type = EV_ABS;
                 ev[23].code = ABS_RZ;
-                ev[23].value = PHYSICAL_ABS_RZ;
+                if ( * rightanalog_axis == 0) {
+                        ev[23].value = PHYSICAL_ABS_RZ;
+                } else {
+                        ev[23].value = -PHYSICAL_ABS_RZ;
+                }
 
                 ev[24].type = EV_KEY;
                 ev[24].code = BTN_C;
@@ -1010,6 +1020,9 @@ static void setupMaps() {
         openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "ANALOG_AXIS"), & analog_axis, & fd_analog_axis);
         openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "ANALOG_AXIS_ISUPDATED"), & analog_axis_isupdated, & fd_analog_axis_isupdated);
 
+        openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "RIGHTANALOG_AXIS"), & rightanalog_axis, & fd_rightanalog_axis);
+        openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "RIGHTANALOG_AXIS_ISUPDATED"), & rightanalog_axis_isupdated, & fd_rightanalog_axis_isupdated);
+
         openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "DPAD_ANALOG_SWAP"), & dpad_analog_swap, & fd_dpad_analog_swap);
         openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "DPAD_ANALOG_SWAP_ISUPDATED"), & dpad_analog_swap_isupdated, & fd_dpad_analog_swap_isupdated);
 
@@ -1023,6 +1036,7 @@ static void updateMapVars() {
         performance_mode_isupdated_local = * performance_mode_isupdated;
         analog_sensitivity_isupdated_local = * analog_sensitivity_isupdated;
         analog_axis_isupdated_local = * analog_axis_isupdated;
+        rightanalog_axis_isupdated_local = * rightanalog_axis_isupdated;
         dpad_analog_swap_isupdated_local = * dpad_analog_swap_isupdated;
         fan_control_isupdated_local = * fan_control_isupdated;
         fan_control_isenabled_local = * fan_control_isenabled;
