@@ -20,6 +20,8 @@
 
 #include <signal.h>
 
+#include <math.h> // Include for ceil function
+
 #define BUFFER_SIZE sizeof(int)
 #define DIRECTORY_PATH "/data/rgp2xbox/"
 #define msleep(ms) usleep((ms) * 1000)
@@ -58,6 +60,7 @@ static void setupMaps();
 static void updateMapVars();
 static void fanControl();
 static int get_cpu_temp();
+static void createAnalogSensitvityCSV();
 
 ///////////////////
 
@@ -80,7 +83,7 @@ int main(void) {
         }
 
         setupMaps();
-
+		createAnalogSensitvityCSV();
         fprintf(stderr, "Open /dev/uinput...\n");
         int fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
 
@@ -1068,4 +1071,167 @@ static int get_cpu_temp() {
         int current_cpu_temp = atoi(send_shell_command("cat /sys/class/thermal/thermal_zone*/temp 2>/dev/null | awk '{sum += $1; n++} END {if (n > 0) print int((sum / n + 99) / 1000)}'"));
 
         return current_cpu_temp;
+}
+
+static void createAnalogSensitvityCSV() {
+
+
+//------------ -5% sensitivity
+    FILE *file;
+    int exists = 0;
+	char * filepath = "/data/rgp2xbox/DecreaseAnalogSensitivityBy5Percent.csv";
+
+    // Check if file exists
+    file = fopen(filepath, "r");
+    if (file) {
+        exists = 1;
+        fclose(file);
+    }
+
+    // Create file if it does not exist
+    if (!exists) {
+        file = fopen(filepath, "w");
+        if (file == NULL) {
+            perror("Error opening file");
+            return;
+        }
+
+        // Set file permissions to 777
+        chmod(filepath, 0777);
+
+        // Write data to CSV
+        for (int i = -1800; i <= 1800; i++) {
+            double secondValue;
+            if (i == 0) {
+                // Keep 0 as is
+                secondValue = 0;
+            } else if (i > 0) {
+                // For positive numbers
+                secondValue = ceil(i * 0.95);
+            } else {
+                // For negative numbers
+                secondValue = floor(i * 0.95);
+            }
+            fprintf(file, "%d,%.0f\n", i, secondValue);
+        }
+
+        fclose(file);
+    }
+	
+//------------ -10% sensitivity	
+    exists = 0;
+	filepath = "/data/rgp2xbox/DecreaseAnalogSensitivityBy10Percent.csv";
+
+    // Check if file exists
+    file = fopen(filepath, "r");
+    if (file) {
+        exists = 1;
+        fclose(file);
+    }
+
+    // Create file if it does not exist
+    if (!exists) {
+        file = fopen(filepath, "w");
+        if (file == NULL) {
+            perror("Error opening file");
+            return;
+        }
+
+        // Set file permissions to 777
+        chmod(filepath, 0777);
+
+        // Write data to CSV
+        for (int i = -1800; i <= 1800; i++) {
+            double secondValue;
+            if (i == 0) {
+                // Keep 0 as is
+                secondValue = 0;
+            } else if (i > 0) {
+                // For positive numbers
+                secondValue = ceil(i * 0.90);
+            } else {
+                // For negative numbers
+                secondValue = floor(i * 0.90);
+            }
+            fprintf(file, "%d,%.0f\n", i, secondValue);
+        }
+
+        fclose(file);
+    }	
+
+//------------ -25% sensitivity
+	
+    exists = 0;
+	filepath = "/data/rgp2xbox/DecreaseAnalogSensitivityBy25Percent.csv";
+
+    // Check if file exists
+    file = fopen(filepath, "r");
+    if (file) {
+        exists = 1;
+        fclose(file);
+    }
+
+    // Create file if it does not exist
+    if (!exists) {
+        file = fopen(filepath, "w");
+        if (file == NULL) {
+            perror("Error opening file");
+            return;
+        }
+
+        // Set file permissions to 777
+        chmod(filepath, 0777);
+
+        // Write data to CSV
+        for (int i = -1800; i <= 1800; i++) {
+            double secondValue;
+            if (i == 0) {
+                // Keep 0 as is
+                secondValue = 0;
+            } else if (i > 0) {
+                // For positive numbers
+                secondValue = ceil(i * 0.75);
+            } else {
+                // For negative numbers
+                secondValue = floor(i * 0.75);
+            }
+            fprintf(file, "%d,%.0f\n", i, secondValue);
+        }
+
+        fclose(file);
+    }	
+
+
+//------------ custom% sensitivity
+	
+    exists = 0;
+	filepath = "/data/rgp2xbox/DecreaseAnalogSensitivityCustom.csv";
+
+    // Check if file exists
+    file = fopen(filepath, "r");
+    if (file) {
+        exists = 1;
+        fclose(file);
+    }
+
+    // Create file if it does not exist
+    if (!exists) {
+        file = fopen(filepath, "w");
+        if (file == NULL) {
+            perror("Error opening file");
+            return;
+        }
+
+        // Set file permissions to 777
+        chmod(filepath, 0777);
+
+        // Write data to CSV
+        for (int i = -1800; i <= 1800; i++) {
+            fprintf(file, "%d,%d\n", i, i);
+        }
+
+        fclose(file);
+    }	
+	
+	
 }
