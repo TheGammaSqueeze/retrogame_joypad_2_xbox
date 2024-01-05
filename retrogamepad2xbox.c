@@ -299,17 +299,17 @@ int main(void) {
 
                 // Update screen status and MMAP variables
                 if (count % 250 == 0) {
-                        screenison = get_screen_status();
-                        if (fan_control_isenabled_local == 1) {
-                                fanison = get_fan_status();
-                        }
+                        //screenison = get_screen_status();
+                        //if (fan_control_isenabled_local == 1) {
+                        //        fanison = get_fan_status();
+                        //}
                         updateMapVars();
                 }
 
                 // Check if screen is off, and make sure to turn the fan off.
-                if (screenison == 0 && fan_control_isenabled_local == 1 && fanison == 1) {
-                        send_shell_command("/system/bin/setfan_off.sh");
-                }
+                //if (screenison == 0 && fan_control_isenabled_local == 1 && fanison == 1) {
+                //        send_shell_command("/system/bin/setfan_off.sh");
+                //}
 				
 				if (analog_sensitivity_isupdated_local == 1) {* analog_sensitivity_isupdated = 0; analog_sensitivity_isupdated_local = 0; if (* analog_sensitivity != 0) {setAnalogSensitvityTable(* analog_sensitivity);}}
 
@@ -687,32 +687,32 @@ int main(void) {
                 ev[31].code = SYN_REPORT;
                 ev[31].value = 0;
 
-                if (screenison == 1 || (screenison == 0 && PHYSICAL_BTN_POWER == 1)) {
+ //               if (screenison == 1 || (screenison == 0 && PHYSICAL_BTN_POWER == 1)) {
 
-                        // Fan stuff
-                        if (fan_control_isupdated_local == 1 && fan_control_isenabled_local == 1) {
-                                fanControl();
-                                fan_control_isupdated_local = 0;
-                                * fan_control_isupdated = 0;
-                        }
+                        // // Fan stuff
+                        // if (fan_control_isupdated_local == 1 && fan_control_isenabled_local == 1) {
+                                // fanControl();
+                                // fan_control_isupdated_local = 0;
+                                // * fan_control_isupdated = 0;
+                        // }
 
-                        if (count % 2500 == 0 && fan_control_isenabled_local == 1) {
-                                if (screenison == 1) {
-                                        fanControl();
-                                }
-                                if ( * fan_control == 1) {
-                                        int currentTemp = get_cpu_temp();
-                                        if (currentTemp < 60) {
-                                                send_shell_command("/system/bin/setfan_off.sh");
-                                        }
-                                        if (currentTemp >= 60 && currentTemp < 75) {
-                                                send_shell_command("/system/bin/setfan_cool.sh");
-                                        }
-                                        if (currentTemp >= 75) {
-                                                send_shell_command("/system/bin/setfan_max.sh");
-                                        }
-                                }
-                        }
+                        // if (count % 2500 == 0 && fan_control_isenabled_local == 1) {
+                                // if (screenison == 1) {
+                                        // fanControl();
+                                // }
+                                // if ( * fan_control == 1) {
+                                        // int currentTemp = get_cpu_temp();
+                                        // if (currentTemp < 60) {
+                                                // send_shell_command("/system/bin/setfan_off.sh");
+                                        // }
+                                        // if (currentTemp >= 60 && currentTemp < 75) {
+                                                // send_shell_command("/system/bin/setfan_cool.sh");
+                                        // }
+                                        // if (currentTemp >= 75) {
+                                                // send_shell_command("/system/bin/setfan_max.sh");
+                                        // }
+                                // }
+                        // }
 
                         if (write(fd, & ev, sizeof ev) < 0) {
                                 perror("write");
@@ -851,8 +851,8 @@ int main(void) {
                                 homepressed = 0;
                         }
 
-                }
-                msleep(3);
+ //               }
+                msleep(4);
 
                 ++count;
 
