@@ -774,7 +774,7 @@ int main(void) {
 
                         }
 
-                        // Add brightness control
+                        // Add brightness control - analog sticks
                         if (VIRTUAL_BTN_MODE == 0 && isadjustingbrightness == 1 && PHYSICAL_ABS_RZ > 1500 && count % 10 == 0) {
                                 lcd_brightness(0);
                         }
@@ -782,7 +782,7 @@ int main(void) {
                                 lcd_brightness(1);
                         }
 
-                        // Add brightness control
+                        // Add brightness control - volume rocker
                         if (VIRTUAL_BTN_MODE == 0 && isadjustingbrightness == 1 && PHYSICAL_BTN_VOLUMEDOWN == 1 && count % 10 == 0) {
                                 lcd_brightness(0);
                         }
@@ -790,9 +790,15 @@ int main(void) {
                                 lcd_brightness(1);
                         }
 
+						// Stop brightness control when buttons are released
                         if (ie.code == 158 && ie.value == 0 && PHYSICAL_BTN_VOLUMEUP == 0 && PHYSICAL_BTN_VOLUMEDOWN == 0 && PHYSICAL_ABS_RZ < 1500 && PHYSICAL_ABS_RZ > -1500) {
                                 isadjustingbrightness = 0;
                         }
+						
+                        if (adckeysie.code == 158 && adckeysie.value == 0 && PHYSICAL_BTN_VOLUMEUP == 0 && PHYSICAL_BTN_VOLUMEDOWN == 0 && PHYSICAL_ABS_RZ < 1500 && PHYSICAL_ABS_RZ > -1500) {
+                                isadjustingbrightness = 0;
+                        }
+						
 
                         // Reset variables when back button no longer pressed
                         if (ie.code == 158 && ie.value == 0) {
@@ -963,7 +969,7 @@ static void set_performance_mode() {
 // Get current screen status
 static int get_screen_status() {
 
-        int screenstatus = atoi(send_shell_command("cat /sys/devices/platform/sprd_backlight/backlight/sprd_backlight/brightness"));
+        int screenstatus = atoi(send_shell_command("cat /sys/devices/platform/backlight/backlight/backlight/brightness"));
 
         if (screenstatus != 0) {
                 screenstatus = 1;
