@@ -28,7 +28,7 @@
 #define RETRY_DELAY 5000 // Retry delay in microseconds (5 milliseconds)
 
 // Global variable declarations
-const int debug_messages_enabled = 0;
+const int debug_messages_enabled = 1;
 int * abxy_layout, * abxy_layout_isupdated, abxy_layout_isupdated_local;
 int * performance_mode, * performance_mode_isupdated, performance_mode_isupdated_local;
 int * analog_sensitivity, * analog_sensitivity_isupdated, analog_sensitivity_isupdated_local;
@@ -135,14 +135,15 @@ int main(void) {
         ioctl(fd, UI_SET_KEYBIT, KEY_VOLUMEDOWN);
         ioctl(fd, UI_SET_KEYBIT, KEY_VOLUMEUP);
         ioctl(fd, UI_SET_KEYBIT, KEY_POWER);
+        ioctl(fd, UI_SET_KEYBIT, KEY_HOMEPAGE);
 
         ioctl(fd, UI_SET_EVBIT, EV_ABS); // enable analog absolute position handling
 
-        setup_abs(fd, ABS_X, -1800, 1800);
-        setup_abs(fd, ABS_Y, -1800, 1800);
+        setup_abs(fd, ABS_X, 0, 256);
+        setup_abs(fd, ABS_Y, 0, 256);
 
-        setup_abs(fd, ABS_Z, -1800, 1800);
-        setup_abs(fd, ABS_RZ, -1800, 1800);
+        setup_abs(fd, ABS_Z, 0, 256);
+        setup_abs(fd, ABS_RZ, 0, 256);
 
         setup_abs(fd, ABS_GAS, 0, 1);
         setup_abs(fd, ABS_BRAKE, 0, 1);
@@ -192,8 +193,8 @@ int main(void) {
 
         // Create /dev/input/event# string by using grep to get physical retrogame_joypad event number
         char openrgp[1000] = "/dev/input/";
-        strcat(openrgp, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A1 retrogame_joypad/ | grep -Eo 'event[0-9]+'"));
-        fprintf(stderr, "Physical retrogame_joypad: %s\nReady.\n", openrgp);
+        strcat(openrgp, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A2 'KT Controller' | grep -Eo 'event[0-9]+'"));
+        fprintf(stderr, "Physical KT Controller: %s\nReady.\n", openrgp);
 
         // Open physical_retrogame_joypad, with exclusive access to this application only
         int physical_retrogame_joypad = open(openrgp, O_RDWR | O_NONBLOCK, S_IRUSR | S_IWUSR);
@@ -201,18 +202,18 @@ int main(void) {
 
         char rgpremove[1000] = "rm ";
         strcat(rgpremove, openrgp);
-        send_shell_command(rgpremove);
+        //send_shell_command(rgpremove);
 
-        char tjpremove[1000] = "rm /dev/input/";
-        strcat(tjpremove, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A1 input/touch_joypad | grep -Eo 'event[0-9]+'"));
-        send_shell_command(tjpremove);
+        //char tjpremove[1000] = "rm /dev/input/";
+        //strcat(tjpremove, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A1 input/touch_joypad | grep -Eo 'event[0-9]+'"));
+        //send_shell_command(tjpremove);
 
         // Define data structure to capture physical inputs
         struct input_event ie;
 
         // Create /dev/input/event# string by using grep to get physical retrogame_joypad event number
         char opengpio[1000] = "/dev/input/";
-        strcat(opengpio, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A1 gpio-keys/ | grep -Eo 'event[0-9]+'"));
+        strcat(opengpio, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A2 'mtk-kpd' | grep -Eo 'event[0-9]+'"));
         fprintf(stderr, "Physical gpio_keys: %s\nReady.\n", opengpio);
 
         // Open gpio-=keys, no exclusive access 
@@ -319,7 +320,7 @@ int main(void) {
                         screenison = 1;
 
                         if (debug_messages_enabled == 1) {
-                                fprintf(stderr, "time:%ld.%06ld\ttype:%u\tcode:%u\tvalue:%d\n", gpioie.time.tv_sec, gpioie.time.tv_usec, gpioie.type, gpioie.code, gpioie.value);
+                                fprintf(stderr, "gpiotime:%ld.%06ld\ttype:%u\tcode:%u\tvalue:%d\n", gpioie.time.tv_sec, gpioie.time.tv_usec, gpioie.type, gpioie.code, gpioie.value);
                         }
                         if (gpioie.code == 114) {
                                 PHYSICAL_BTN_VOLUMEDOWN = gpioie.value;
@@ -336,10 +337,10 @@ int main(void) {
                 read(physical_adc_keys, & adckeysie, sizeof(struct input_event));
 
                 // Read physical adc-keys inputs
-                if (adckeysie.type == 1 && adckeysie.code == 158) {
+                if (adckeysie.type == 1 && adckeysie.code == 139) {
 
                         if (debug_messages_enabled == 1) {
-                                fprintf(stderr, "time:%ld.%06ld\ttype:%u\tcode:%u\tvalue:%d\n", adckeysie.time.tv_sec, adckeysie.time.tv_usec, adckeysie.type, adckeysie.code, adckeysie.value);
+                                fprintf(stderr, "adctime:%ld.%06ld\ttype:%u\tcode:%u\tvalue:%d\n", adckeysie.time.tv_sec, adckeysie.time.tv_usec, adckeysie.type, adckeysie.code, adckeysie.value);
                         }
 
                 }
@@ -351,7 +352,7 @@ int main(void) {
                 // Read physical retrogame_joypad inputs and update our virtual gamepad inputs accordingly
                 if (ie.type != 0) {
                         if (debug_messages_enabled == 1 && ie.value != 127) {
-                                fprintf(stderr, "time:%ld.%06ld\ttype:%u\tcode:%u\tvalue:%d\n", ie.time.tv_sec, ie.time.tv_usec, ie.type, ie.code, ie.value);
+                                fprintf(stderr, "ietime:%ld.%06ld\ttype:%u\tcode:%u\tvalue:%d\n", ie.time.tv_sec, ie.time.tv_usec, ie.type, ie.code, ie.value);
                         }
 
                         // L1
@@ -425,12 +426,12 @@ int main(void) {
                         }
 
                         // BACK
-                        if (ie.code == 158) {
+                        if (ie.code == 139) {
                                 PHYSICAL_BTN_BACK = ie.value;
                         }
 
                         // HOME
-                        if (ie.code == 68) {
+                        if (ie.code == 172) {
                                 PHYSICAL_BTN_HOME = ie.value;
                         }
 
@@ -444,13 +445,13 @@ int main(void) {
                                 if ( * dpad_analog_swap == 1) {
                                         //PHYSICAL_HAT_Y = 0; 
                                         if (ie.value == 0) {
-                                                PHYSICAL_ABS_Y = 0;
+                                                PHYSICAL_ABS_Y = 128;
                                         }
                                         if (ie.value == 1) {
-                                                PHYSICAL_ABS_Y = 1800;
+                                                PHYSICAL_ABS_Y = 254;
                                         }
                                         if (ie.value == -1) {
-                                                PHYSICAL_ABS_Y = -1800;
+                                                PHYSICAL_ABS_Y = 0;
                                         }
                                 } else {
                                         PHYSICAL_HAT_Y = ie.value;
@@ -462,13 +463,13 @@ int main(void) {
                                 if ( * dpad_analog_swap == 1) {
                                         //PHYSICAL_HAT_X = 0; 
                                         if (ie.value == 0) {
-                                                PHYSICAL_ABS_X = 0;
+                                                PHYSICAL_ABS_X = 128;
                                         }
                                         if (ie.value == 1) {
-                                                PHYSICAL_ABS_X = 1800;
+                                                PHYSICAL_ABS_X = 254;
                                         }
                                         if (ie.value == -1) {
-                                                PHYSICAL_ABS_X = -1800;
+                                                PHYSICAL_ABS_X = 0;
                                         }
                                 } else {
                                         PHYSICAL_HAT_X = ie.value;
@@ -479,13 +480,13 @@ int main(void) {
                         if (ie.code == 1) {
                                 if ( * dpad_analog_swap == 1) {
                                         //PHYSICAL_ABS_Y = 0; 
-                                        if (ie.value < 1000 && ie.value > -1000) {
+                                        if (ie.value < 140 && ie.value > 90) {
                                                 PHYSICAL_HAT_Y = 0;
                                         }
-                                        if (ie.value >= 1000) {
+                                        if (ie.value >= 140) {
                                                 PHYSICAL_HAT_Y = 1;
                                         }
-                                        if (ie.value <= -1000) {
+                                        if (ie.value <= 90) {
                                                 PHYSICAL_HAT_Y = -1;
                                         }
                                 } else {
@@ -497,13 +498,13 @@ int main(void) {
                         if (ie.code == 0) {
                                 if ( * dpad_analog_swap == 1) {
                                         //PHYSICAL_ABS_X = 0; 
-                                        if (ie.value < 1000 && ie.value > -1000) {
+                                        if (ie.value < 140 && ie.value > 50) {
                                                 PHYSICAL_HAT_X = 0;
                                         }
-                                        if (ie.value >= 1000) {
+                                        if (ie.value >= 140) {
                                                 PHYSICAL_HAT_X = 1;
                                         }
-                                        if (ie.value <= -1000) {
+                                        if (ie.value <= 90) {
                                                 PHYSICAL_HAT_X = -1;
                                         }
                                 } else {
@@ -571,7 +572,7 @@ int main(void) {
                 ev[7].value = PHYSICAL_BTN_TL2;
 
                 ev[8].type = EV_KEY;
-                ev[8].code = 66;
+                ev[8].code = KEY_HOMEPAGE;
                 ev[8].value = PHYSICAL_BTN_HOME;
 
                 ev[9].type = EV_KEY;
@@ -720,7 +721,7 @@ int main(void) {
                         }
 
                         //Support for 353 series back button
-                        if (adckeysie.type == 1 && adckeysie.code == 158) {
+                        if (adckeysie.type == 1 && adckeysie.code == 139) {
                                 PHYSICAL_BTN_BACK = adckeysie.value;
                         }
 
@@ -733,11 +734,11 @@ int main(void) {
                         if (backpressed == 1 && backpresscomplete == 0 && homepresscomplete == 0) {
 
                                 // Check if back button and any other buttons are pressed, enable MODE key and stop back/home functionality until the back/home button is released. Allows for using back/home button as hotkey with other buttons.
-                                if (PHYSICAL_BTN_BACK == 1 && (PHYSICAL_BTN_VOLUMEUP == 1 || PHYSICAL_BTN_VOLUMEDOWN == 1 || PHYSICAL_BTN_A == 1 || PHYSICAL_BTN_B == 1 || PHYSICAL_BTN_C == 1 || PHYSICAL_BTN_X == 1 || PHYSICAL_BTN_Y == 1 || PHYSICAL_BTN_Z == 1 || PHYSICAL_BTN_SELECT == 1 || PHYSICAL_BTN_START == 1 || PHYSICAL_BTN_TL == 1 || PHYSICAL_BTN_TL2 == 1 || PHYSICAL_BTN_TR == 1 || PHYSICAL_BTN_TR2 || PHYSICAL_BTN_THUMBL == 1 || PHYSICAL_BTN_THUMBR == 1 || PHYSICAL_HAT_X != 0 || PHYSICAL_HAT_Y != 0 || PHYSICAL_ABS_RZ > 1500 || PHYSICAL_ABS_RZ < -1500 || PHYSICAL_ABS_X > 1500 || PHYSICAL_ABS_X < -1500 || PHYSICAL_ABS_Y > 1500 || PHYSICAL_ABS_Y < -1500 || PHYSICAL_ABS_Z > 1500 || PHYSICAL_ABS_Z < -1500)) {
+                                if (PHYSICAL_BTN_BACK == 1 && (PHYSICAL_BTN_VOLUMEUP == 1 || PHYSICAL_BTN_VOLUMEDOWN == 1 || PHYSICAL_BTN_A == 1 || PHYSICAL_BTN_B == 1 || PHYSICAL_BTN_C == 1 || PHYSICAL_BTN_X == 1 || PHYSICAL_BTN_Y == 1 || PHYSICAL_BTN_Z == 1 || PHYSICAL_BTN_SELECT == 1 || PHYSICAL_BTN_START == 1 || PHYSICAL_BTN_TL == 1 || PHYSICAL_BTN_TL2 == 1 || PHYSICAL_BTN_TR == 1 || PHYSICAL_BTN_TR2 || PHYSICAL_BTN_THUMBL == 1 || PHYSICAL_BTN_THUMBR == 1 || PHYSICAL_HAT_X != 0 || PHYSICAL_HAT_Y != 0 || PHYSICAL_ABS_RZ > 130 || PHYSICAL_ABS_RZ < 90 || PHYSICAL_ABS_X > 130 || PHYSICAL_ABS_X < 90 || PHYSICAL_ABS_Y > 130 || PHYSICAL_ABS_Y < 90 || PHYSICAL_ABS_Z > 130 || PHYSICAL_ABS_Z < 90)) {
                                         VIRTUAL_BTN_MODE = 1;
                                         backpresscomplete = 1;
                                         homepresscomplete = 1;
-                                        if (PHYSICAL_BTN_VOLUMEUP == 1 || PHYSICAL_BTN_VOLUMEDOWN == 1 || PHYSICAL_ABS_RZ > 1500 || PHYSICAL_ABS_RZ < -1500) {
+                                        if (PHYSICAL_BTN_VOLUMEUP == 1 || PHYSICAL_BTN_VOLUMEDOWN == 1 || PHYSICAL_ABS_RZ > 130 || PHYSICAL_ABS_RZ < 90) {
                                                 isadjustingbrightness = 1;
                                                 VIRTUAL_BTN_MODE = 0;
                                         } else {
@@ -775,10 +776,10 @@ int main(void) {
                         }
 
                         // Add brightness control - analog sticks
-                        if (VIRTUAL_BTN_MODE == 0 && isadjustingbrightness == 1 && PHYSICAL_ABS_RZ > 1500 && count % 10 == 0) {
+                        if (VIRTUAL_BTN_MODE == 0 && isadjustingbrightness == 1 && PHYSICAL_ABS_RZ > 130 && count % 10 == 0) {
                                 lcd_brightness(0);
                         }
-                        if (VIRTUAL_BTN_MODE == 0 && isadjustingbrightness == 1 && PHYSICAL_ABS_RZ < -1500 && count % 10 == 0) {
+                        if (VIRTUAL_BTN_MODE == 0 && isadjustingbrightness == 1 && PHYSICAL_ABS_RZ < 90 && count % 10 == 0) {
                                 lcd_brightness(1);
                         }
 
@@ -791,24 +792,24 @@ int main(void) {
                         }
 
 						// Stop brightness control when buttons are released
-                        if (ie.code == 158 && ie.value == 0 && PHYSICAL_BTN_VOLUMEUP == 0 && PHYSICAL_BTN_VOLUMEDOWN == 0 && PHYSICAL_ABS_RZ < 1500 && PHYSICAL_ABS_RZ > -1500) {
+                        if (ie.code == 139 && ie.value == 0 && PHYSICAL_BTN_VOLUMEUP == 0 && PHYSICAL_BTN_VOLUMEDOWN == 0 && PHYSICAL_ABS_RZ > 90 && PHYSICAL_ABS_RZ < 130) {
                                 isadjustingbrightness = 0;
                         }
 						
-                        if (adckeysie.code == 158 && adckeysie.value == 0 && PHYSICAL_BTN_VOLUMEUP == 0 && PHYSICAL_BTN_VOLUMEDOWN == 0 && PHYSICAL_ABS_RZ < 1500 && PHYSICAL_ABS_RZ > -1500) {
+                        if (adckeysie.code == 139 && adckeysie.value == 0 && PHYSICAL_BTN_VOLUMEUP == 0 && PHYSICAL_BTN_VOLUMEDOWN == 0 && PHYSICAL_ABS_RZ > 90 && PHYSICAL_ABS_RZ < 130) {
                                 isadjustingbrightness = 0;
                         }
 						
 
                         // Reset variables when back button no longer pressed
-                        if (ie.code == 158 && ie.value == 0) {
+                        if (ie.code == 139 && ie.value == 0) {
                                 PHYSICAL_BTN_BACK = 0;
                                 VIRTUAL_BTN_MODE = 0;
                                 VIRTUAL_BTN_1 = 0;
                                 VIRTUAL_BTN_2 = 0;
                         }
 
-                        if (adckeysie.code == 158 && adckeysie.value == 0) {
+                        if (adckeysie.code == 139 && adckeysie.value == 0) {
                                 PHYSICAL_BTN_BACK = 0;
                                 VIRTUAL_BTN_MODE = 0;
                                 VIRTUAL_BTN_1 = 0;
@@ -842,17 +843,17 @@ int main(void) {
                                 * performance_mode_isupdated = 0;
                         }
 
-                        if (PHYSICAL_BTN_HOME == 1 && homepressed == 0) {
-                                send_shell_command("input keyevent 3");
-                                homepressed = 1;
-                        }
+                         if (PHYSICAL_BTN_HOME == 1 && homepressed == 0) {
+                                // send_shell_command("input keyevent 3");
+                                 homepressed = 1;
+                         }
 
-                        if (PHYSICAL_BTN_HOME == 0) {
-                                homepressed = 0;
-                        }
+                         if (PHYSICAL_BTN_HOME == 0) {
+                                 homepressed = 0;
+                         }
 
  //               }
-                msleep(4);
+                msleep(2);
 
                 ++count;
 
@@ -901,7 +902,7 @@ static char * send_shell_command(char * shellcmd) {
         return cmd_output;
 }
 
-// Get current LCD brightness and set value up or down by 10
+// Get current LCD brightness and set value up or down by 2
 static int lcd_brightness(int value) {
 
         int current_brightness = atoi(send_shell_command("settings get system screen_brightness"));
@@ -910,15 +911,15 @@ static int lcd_brightness(int value) {
         }
 
         if (value == 1 && current_brightness < 255) {
-                current_brightness = current_brightness + 10;
+                current_brightness = current_brightness + 3;
                 if (current_brightness > 255) {
                         current_brightness = 255;
                 }
         }
         if (value == 0 && current_brightness > 1) {
-                current_brightness = current_brightness - 10;
-                if (current_brightness < 1) {
-                        current_brightness = 1;
+                current_brightness = current_brightness - 3;
+                if (current_brightness < 3) {
+                        current_brightness = 3;
                 }
         }
 
@@ -969,7 +970,7 @@ static void set_performance_mode() {
 // Get current screen status
 static int get_screen_status() {
 
-        int screenstatus = atoi(send_shell_command("cat /sys/devices/platform/backlight/backlight/backlight/brightness"));
+        int screenstatus = atoi(send_shell_command("cat /sys/devices/platform/soc/soc\\:mtk_leds/leds/lcd-backlight/brightness"));
 
         if (screenstatus != 0) {
                 screenstatus = 1;
@@ -1124,12 +1125,12 @@ static void createAnalogSensitvityCSV() {
         chmod(filepath, 0666);
 
         // Write data to CSV
-        for (int i = -1800; i <= 1800; i++) {
+        for (int i = 0; i <= 256; i++) {
             double secondValue;
-            if (i == 0) {
-                // Keep 0 as is
-                secondValue = 0;
-            } else if (i > 0) {
+            if (i == 128) {
+                // Keep 128 as is
+                secondValue = 128;
+            } else if (i > 128) {
                 // For positive numbers
                 secondValue = ceil(i * 0.85);
             } else {
@@ -1165,12 +1166,12 @@ static void createAnalogSensitvityCSV() {
         chmod(filepath, 0666);
 
         // Write data to CSV
-        for (int i = -1800; i <= 1800; i++) {
+        for (int i = 0; i <= 256; i++) {
             double secondValue;
-            if (i == 0) {
-                // Keep 0 as is
-                secondValue = 0;
-            } else if (i > 0) {
+            if (i == 128) {
+                // Keep 128 as is
+                secondValue = 128;
+            } else if (i > 128) {
                 // For positive numbers
                 secondValue = ceil(i * 0.75);
             } else {
@@ -1207,12 +1208,12 @@ static void createAnalogSensitvityCSV() {
         chmod(filepath, 0666);
 
         // Write data to CSV
-        for (int i = -1800; i <= 1800; i++) {
+        for (int i = 0; i <= 256; i++) {
             double secondValue;
-            if (i == 0) {
+            if (i == 128) {
                 // Keep 0 as is
-                secondValue = 0;
-            } else if (i > 0) {
+                secondValue = 128;
+            } else if (i > 128) {
                 // For positive numbers
                 secondValue = ceil(i * 0.50);
             } else {
@@ -1250,7 +1251,7 @@ static void createAnalogSensitvityCSV() {
         chmod(filepath, 0666);
 
         // Write data to CSV
-        for (int i = -1800; i <= 1800; i++) {
+        for (int i = 0; i <= 256; i++) {
             fprintf(file, "%d,%d\n", i, i);
         }
 
