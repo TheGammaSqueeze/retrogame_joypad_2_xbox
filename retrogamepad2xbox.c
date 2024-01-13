@@ -921,13 +921,13 @@ static int lcd_brightness(int value) {
         }
 
         if (value == 1 && current_brightness < 256) {
-                current_brightness = current_brightness + 3;
+                current_brightness = current_brightness + 10;
                 if (current_brightness > 256) {
                         current_brightness = 256;
                 }
         }
         if (value == 0 && current_brightness > 1) {
-                current_brightness = current_brightness - 3;
+                current_brightness = current_brightness - 10;
                 if (current_brightness < 3) {
                         current_brightness = 3;
                 }
