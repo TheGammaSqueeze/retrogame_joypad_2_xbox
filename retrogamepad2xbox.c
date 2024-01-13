@@ -169,10 +169,13 @@ int main(void) {
         }
 
         // Unbind retrogame_joypad and rebind
-        fprintf(stderr, "Unbinding retrogame_joypad...\n");
-        send_shell_command("echo singleadc-joypad > /sys/bus/platform/drivers/singleadc-joypad/unbind");
-        send_shell_command("echo singleadc-joypad > /sys/bus/platform/drivers/singleadc-joypad/unbind");
-        sleep(3);
+        // fprintf(stderr, "Unbinding 'soc:odm:kte-joystick'...\n");
+        // send_shell_command("echo 'soc:odm:kte-joystick' > /sys/bus/platform/drivers/kte-gpio-keys/unbind");
+        // send_shell_command("echo 'soc:odm:kte-joystick' > /sys/bus/platform/drivers/kte-gpio-keys/unbind");
+        // fprintf(stderr, "Unbinding 'mtk-pmic-keys'...\n");
+        // send_shell_command("echo 'mtk-pmic-keys' > /sys/bus/platform/drivers/mtk-pmic-keys/unbind");
+        // send_shell_command("echo 'mtk-pmic-keys' > /sys/bus/platform/drivers/mtk-pmic-keys/unbind");
+        // sleep(3);
 
         fprintf(stderr, "Create virtual controller uinput device...\n");
         if (ioctl(fd, UI_DEV_CREATE)) {
@@ -180,16 +183,19 @@ int main(void) {
                 return 1;
         }
 
-        fprintf(stderr, "Rebinding retrogame_joypad, force a failure\n");
-        send_shell_command("echo singleadc-joypad > /sys/bus/platform/drivers/singleadc-joypad/bind");
-        sleep(1);
-        fprintf(stderr, "Clean up any left over retrogame_joypad files\n");
-        send_shell_command("rm -rf /sys/devices/platform/singleadc-joypad");
-        send_shell_command("rm -rf /sys/devices/platform/singleadc-joypad");
-        sleep(1);
-        fprintf(stderr, "Finally bind the physical retrogame_joypad again\n");
-        send_shell_command("echo singleadc-joypad > /sys/bus/platform/drivers/singleadc-joypad/bind");
-        sleep(1);
+        // fprintf(stderr, "Rebinding 'soc:odm:kte-joystick', force a failure\n");
+        // send_shell_command("echo 'soc:odm:kte-joystick' > /sys/bus/platform/drivers/kte-gpio-keys/bind");
+        // sleep(1);
+        // fprintf(stderr, "Clean up any left over 'soc\\:odm\\:kte-joystick' files\n");
+        // send_shell_command("rm -rf /sys/devices/platform/soc/soc:odm/soc:odm:kte-joystick");
+        // send_shell_command("rm -rf /sys/devices/platform/soc/soc:odm/soc:odm:kte-joystick");
+        // send_shell_command("rm -rf /sys/devices/platform/soc/10026000.pwrap/10026000.pwrap:mt6366/mtk-pmic-keys");
+        // send_shell_command("rm -rf /sys/devices/platform/soc/10026000.pwrap/10026000.pwrap:mt6366/mtk-pmic-keys");
+        // sleep(1);
+        // fprintf(stderr, "Finally bind the physical 'soc:odm:kte-joystick' again\n");
+        // send_shell_command("echo 'soc:odm:kte-joystick' > /sys/bus/platform/drivers/kte-gpio-keys/bind");
+        // send_shell_command("echo 'mtk-pmic-keys' > /sys/bus/platform/drivers/mtk-pmic-keys/bind");
+        // sleep(1);
 
         // Create /dev/input/event# string by using grep to get physical retrogame_joypad event number
         char openrgp[1000] = "/dev/input/";
@@ -202,7 +208,7 @@ int main(void) {
 
         char rgpremove[1000] = "rm ";
         strcat(rgpremove, openrgp);
-        //send_shell_command(rgpremove);
+        send_shell_command(rgpremove);
 
         //char tjpremove[1000] = "rm /dev/input/";
         //strcat(tjpremove, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A1 input/touch_joypad | grep -Eo 'event[0-9]+'"));
@@ -224,16 +230,16 @@ int main(void) {
         struct input_event gpioie;
 
         // Create /dev/input/event# string by using grep to get physical adc-keys event number
-        char openadckeys[1000] = "/dev/input/";
-        strcat(openadckeys, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A1 adc-keys/ | grep -Eo 'event[0-9]+'"));
-        fprintf(stderr, "Physical gpio_keys: %s\nReady.\n", openadckeys);
+        //char openadckeys[1000] = "/dev/input/";
+        //strcat(openadckeys, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A1 adc-keys/ | grep -Eo 'event[0-9]+'"));
+        //fprintf(stderr, "Physical gpio_keys: %s\nReady.\n", openadckeys);
 
         // Open adc-keys, exclusive access 
-        int physical_adc_keys = open(openadckeys, O_RDWR | O_NONBLOCK, S_IRUSR | S_IWUSR);
-        ioctl(physical_adc_keys, EVIOCGRAB, 1);
+        //int physical_adc_keys = open(openadckeys, O_RDWR | O_NONBLOCK, S_IRUSR | S_IWUSR);
+        //ioctl(physical_adc_keys, EVIOCGRAB, 1);
 
         // Define data structure to capture physical inputs
-        struct input_event adckeysie;
+        //struct input_event adckeysie;
 
         // you can write events one at a time, but to save overhead we'll
         // update all of them in a single write
@@ -334,16 +340,16 @@ int main(void) {
                 }
 
                 //Read input on adc buttons			
-                read(physical_adc_keys, & adckeysie, sizeof(struct input_event));
+                //read(physical_adc_keys, & adckeysie, sizeof(struct input_event));
 
                 // Read physical adc-keys inputs
-                if (adckeysie.type == 1 && adckeysie.code == 139) {
+                // if (adckeysie.type == 1 && adckeysie.code == 139) {
 
-                        if (debug_messages_enabled == 1) {
-                                fprintf(stderr, "adctime:%ld.%06ld\ttype:%u\tcode:%u\tvalue:%d\n", adckeysie.time.tv_sec, adckeysie.time.tv_usec, adckeysie.type, adckeysie.code, adckeysie.value);
-                        }
+                        // if (debug_messages_enabled == 1) {
+                                // fprintf(stderr, "adctime:%ld.%06ld\ttype:%u\tcode:%u\tvalue:%d\n", adckeysie.time.tv_sec, adckeysie.time.tv_usec, adckeysie.type, adckeysie.code, adckeysie.value);
+                        // }
 
-                }
+                // }
 
                 struct input_event ev[32];
                 memset( & ev, 0, sizeof ev);
@@ -725,9 +731,9 @@ int main(void) {
                         }
 
                         //Support for 353 series back button
-                        if (adckeysie.type == 1 && adckeysie.code == 139) {
-                                PHYSICAL_BTN_BACK = adckeysie.value;
-                        }
+                        // if (adckeysie.type == 1 && adckeysie.code == 139) {
+                                // PHYSICAL_BTN_BACK = adckeysie.value;
+                        // }
 
                         // Add logic for back/mode/home functionality
                         if (PHYSICAL_BTN_BACK == 1) {
@@ -800,9 +806,9 @@ int main(void) {
                                 isadjustingbrightness = 0;
                         }
 						
-                        if (adckeysie.code == 139 && adckeysie.value == 0 && PHYSICAL_BTN_VOLUMEUP == 0 && PHYSICAL_BTN_VOLUMEDOWN == 0 && PHYSICAL_ABS_RZ > 90 && PHYSICAL_ABS_RZ < 130) {
-                                isadjustingbrightness = 0;
-                        }
+                        // if (adckeysie.code == 139 && adckeysie.value == 0 && PHYSICAL_BTN_VOLUMEUP == 0 && PHYSICAL_BTN_VOLUMEDOWN == 0 && PHYSICAL_ABS_RZ > 90 && PHYSICAL_ABS_RZ < 130) {
+                                // isadjustingbrightness = 0;
+                        // }
 						
 
                         // Reset variables when back button no longer pressed
@@ -813,12 +819,12 @@ int main(void) {
                                 VIRTUAL_BTN_2 = 0;
                         }
 
-                        if (adckeysie.code == 139 && adckeysie.value == 0) {
-                                PHYSICAL_BTN_BACK = 0;
-                                VIRTUAL_BTN_MODE = 0;
-                                VIRTUAL_BTN_1 = 0;
-                                VIRTUAL_BTN_2 = 0;
-                        }
+                        // if (adckeysie.code == 139 && adckeysie.value == 0) {
+                                // PHYSICAL_BTN_BACK = 0;
+                                // VIRTUAL_BTN_MODE = 0;
+                                // VIRTUAL_BTN_1 = 0;
+                                // VIRTUAL_BTN_2 = 0;
+                        // }
 
                         if (PHYSICAL_BTN_BACK == 0 && VIRTUAL_BTN_MODE == 0) {
                                 backpressed = 0;
@@ -914,10 +920,10 @@ static int lcd_brightness(int value) {
                 fprintf(stderr, "Current brightness: %i\n", current_brightness);
         }
 
-        if (value == 1 && current_brightness < 255) {
+        if (value == 1 && current_brightness < 256) {
                 current_brightness = current_brightness + 3;
-                if (current_brightness > 255) {
-                        current_brightness = 255;
+                if (current_brightness > 256) {
+                        current_brightness = 256;
                 }
         }
         if (value == 0 && current_brightness > 1) {
@@ -1038,7 +1044,7 @@ static void setupMaps() {
                 chmod(DIRECTORY_PATH, 0777);
         }
 
-        char filePath[255];
+        char filePath[256];
 
         openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "ABXY_LAYOUT"), & abxy_layout, & fd_abxy_layout);
         openAndMap(strcat(strcpy(filePath, DIRECTORY_PATH), "ABXY_LAYOUT_ISUPDATED"), & abxy_layout_isupdated, & fd_abxy_layout_isupdated);
