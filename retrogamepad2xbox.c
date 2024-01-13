@@ -28,7 +28,7 @@
 #define RETRY_DELAY 5000 // Retry delay in microseconds (5 milliseconds)
 
 // Global variable declarations
-const int debug_messages_enabled = 1;
+const int debug_messages_enabled = 0;
 int * abxy_layout, * abxy_layout_isupdated, abxy_layout_isupdated_local;
 int * performance_mode, * performance_mode_isupdated, performance_mode_isupdated_local;
 int * analog_sensitivity, * analog_sensitivity_isupdated, analog_sensitivity_isupdated_local;
@@ -480,13 +480,13 @@ int main(void) {
                         if (ie.code == 1) {
                                 if ( * dpad_analog_swap == 1) {
                                         //PHYSICAL_ABS_Y = 0; 
-                                        if (ie.value < 140 && ie.value > 90) {
+                                        if (ie.value < 178 && ie.value > 78) {
                                                 PHYSICAL_HAT_Y = 0;
                                         }
-                                        if (ie.value >= 140) {
+                                        if (ie.value >= 178) {
                                                 PHYSICAL_HAT_Y = 1;
                                         }
-                                        if (ie.value <= 90) {
+                                        if (ie.value <= 78) {
                                                 PHYSICAL_HAT_Y = -1;
                                         }
                                 } else {
@@ -498,13 +498,13 @@ int main(void) {
                         if (ie.code == 0) {
                                 if ( * dpad_analog_swap == 1) {
                                         //PHYSICAL_ABS_X = 0; 
-                                        if (ie.value < 140 && ie.value > 50) {
+                                        if (ie.value < 178 && ie.value > 78) {
                                                 PHYSICAL_HAT_X = 0;
                                         }
-                                        if (ie.value >= 140) {
+                                        if (ie.value >= 178) {
                                                 PHYSICAL_HAT_X = 1;
                                         }
-                                        if (ie.value <= 90) {
+                                        if (ie.value <= 78) {
                                                 PHYSICAL_HAT_X = -1;
                                         }
                                 } else {
@@ -552,7 +552,8 @@ int main(void) {
                 if ( * analog_axis == 0) {
                         ev[4].value = PHYSICAL_ABS_Y;
                 } else {
-                        ev[4].value = -PHYSICAL_ABS_Y;
+                        if (PHYSICAL_ABS_Y >= 128) {ev[4].value = 128 - (PHYSICAL_ABS_Y - 128);}
+                        if (PHYSICAL_ABS_Y <= 128) {ev[4].value = 128 + (128 - PHYSICAL_ABS_Y);}
                 }
 
                 ev[5].type = EV_ABS;
@@ -560,7 +561,8 @@ int main(void) {
                 if ( * analog_axis == 0) {
                         ev[5].value = PHYSICAL_ABS_X;
                 } else {
-                        ev[5].value = -PHYSICAL_ABS_X;
+                        if (PHYSICAL_ABS_X >= 128) {ev[5].value = 128 - (PHYSICAL_ABS_X - 128);}
+                        if (PHYSICAL_ABS_X <= 128) {ev[5].value = 128 + (128 - PHYSICAL_ABS_X);}
                 }
 
                 ev[6].type = EV_ABS;
@@ -584,7 +586,8 @@ int main(void) {
                 if ( * rightanalog_axis == 0) {
                         ev[10].value = PHYSICAL_ABS_Z;
                 } else {
-                        ev[10].value = -PHYSICAL_ABS_Z;
+                        if (PHYSICAL_ABS_Z >= 128) {ev[10].value = 128 - (PHYSICAL_ABS_Z - 128);}
+                        if (PHYSICAL_ABS_Z <= 128) {ev[10].value = 128 + (128 - PHYSICAL_ABS_Z);}
                 }
 
                 ev[11].type = EV_KEY;
@@ -648,7 +651,8 @@ int main(void) {
                 if ( * rightanalog_axis == 0) {
                         ev[23].value = PHYSICAL_ABS_RZ;
                 } else {
-                        ev[23].value = -PHYSICAL_ABS_RZ;
+                        if (PHYSICAL_ABS_RZ >= 128) {ev[23].value = 128 - (PHYSICAL_ABS_RZ - 128);}
+                        if (PHYSICAL_ABS_RZ <= 128) {ev[23].value = 128 + (128 - PHYSICAL_ABS_RZ);}
                 }
 
                 ev[24].type = EV_KEY;
@@ -853,7 +857,7 @@ int main(void) {
                          }
 
  //               }
-                msleep(2);
+                msleep(3);
 
                 ++count;
 
@@ -1101,7 +1105,7 @@ static int get_cpu_temp() {
 static void createAnalogSensitvityCSV() {
 
 
-//------------ -5% sensitivity
+//------------ -15% sensitivity
     FILE *file;
     int exists = 0;
 	char * filepath = "/data/rgp2xbox/DecreaseAnalogSensitivityBy15Percent.csv";
@@ -1125,17 +1129,20 @@ static void createAnalogSensitvityCSV() {
         chmod(filepath, 0666);
 
         // Write data to CSV
-        for (int i = 0; i <= 256; i++) {
+        for (int i = 128; i <= 256; i++) {
             double secondValue;
+			double secondValue2;
+			int negativeValue;
             if (i == 128) {
                 // Keep 128 as is
                 secondValue = 128;
             } else if (i > 128) {
                 // For positive numbers
-                secondValue = ceil(i * 0.85);
-            } else {
-                // For negative numbers
-                secondValue = floor(i * 0.85);
+                secondValue = floor(i * 0.925); if (secondValue < 128) {secondValue = 128;}
+				
+				negativeValue = 256 - i;
+				secondValue2 = 256 - floor(i * 0.925); if (secondValue2 > 128) {secondValue2 = 128;}
+				fprintf(file, "%d,%.0f\n", negativeValue, secondValue2);
             }
             fprintf(file, "%d,%.0f\n", i, secondValue);
         }
@@ -1143,7 +1150,7 @@ static void createAnalogSensitvityCSV() {
         fclose(file);
     }
 	
-//------------ -10% sensitivity	
+//------------ -25% sensitivity	
     exists = 0;
 	filepath = "/data/rgp2xbox/DecreaseAnalogSensitivityBy25Percent.csv";
 
@@ -1166,17 +1173,20 @@ static void createAnalogSensitvityCSV() {
         chmod(filepath, 0666);
 
         // Write data to CSV
-        for (int i = 0; i <= 256; i++) {
+        for (int i = 128; i <= 256; i++) {
             double secondValue;
+			double secondValue2;
+			int negativeValue;
             if (i == 128) {
                 // Keep 128 as is
                 secondValue = 128;
             } else if (i > 128) {
                 // For positive numbers
-                secondValue = ceil(i * 0.75);
-            } else {
-                // For negative numbers
-                secondValue = floor(i * 0.75);
+                secondValue = floor(i * 0.875); if (secondValue < 128) {secondValue = 128;}
+				
+				negativeValue = 256 - i;
+				secondValue2 = 256 - floor(i * 0.875); if (secondValue2 > 128) {secondValue2 = 128;}
+				fprintf(file, "%d,%.0f\n", negativeValue, secondValue2);
             }
             fprintf(file, "%d,%.0f\n", i, secondValue);
         }
@@ -1184,7 +1194,7 @@ static void createAnalogSensitvityCSV() {
         fclose(file);
     }	
 
-//------------ -25% sensitivity
+//------------ -50% sensitivity
 	
     exists = 0;
 	filepath = "/data/rgp2xbox/DecreaseAnalogSensitivityBy50Percent.csv";
@@ -1208,17 +1218,20 @@ static void createAnalogSensitvityCSV() {
         chmod(filepath, 0666);
 
         // Write data to CSV
-        for (int i = 0; i <= 256; i++) {
+        for (int i = 128; i <= 256; i++) {
             double secondValue;
+			double secondValue2;
+			int negativeValue;
             if (i == 128) {
-                // Keep 0 as is
+                // Keep 128 as is
                 secondValue = 128;
             } else if (i > 128) {
                 // For positive numbers
-                secondValue = ceil(i * 0.50);
-            } else {
-                // For negative numbers
-                secondValue = floor(i * 0.50);
+                secondValue = floor(i * 0.75); if (secondValue < 128) {secondValue = 128;}
+				
+				negativeValue = 256 - i;
+				secondValue2 = 256 - floor(i * 0.75); if (secondValue2 > 128) {secondValue2 = 128;}
+				fprintf(file, "%d,%.0f\n", negativeValue, secondValue2);
             }
             fprintf(file, "%d,%.0f\n", i, secondValue);
         }
