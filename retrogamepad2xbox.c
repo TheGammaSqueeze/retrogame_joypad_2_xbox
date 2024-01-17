@@ -230,16 +230,20 @@ int main(void) {
         struct input_event gpioie;
 
         // Create /dev/input/event# string by using grep to get physical adc-keys event number
-        //char openadckeys[1000] = "/dev/input/";
-        //strcat(openadckeys, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A1 adc-keys/ | grep -Eo 'event[0-9]+'"));
-        //fprintf(stderr, "Physical gpio_keys: %s\nReady.\n", openadckeys);
+        char openadckeys[1000] = "/dev/input/";
+        strcat(openadckeys, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A2 'mtk-pmic-keys' | grep -Eo 'event[0-9]+'"));
+        fprintf(stderr, "Physical mtk-pmic-keys: %s\nReady.\n", openadckeys);
 
         // Open adc-keys, exclusive access 
-        //int physical_adc_keys = open(openadckeys, O_RDWR | O_NONBLOCK, S_IRUSR | S_IWUSR);
-        //ioctl(physical_adc_keys, EVIOCGRAB, 1);
+        int physical_adc_keys = open(openadckeys, O_RDWR | O_NONBLOCK, S_IRUSR | S_IWUSR);
+        ioctl(physical_adc_keys, EVIOCGRAB, 1);
+		
+        char pmicremove[1000] = "rm ";
+        strcat(pmicremove, openadckeys);
+        send_shell_command(pmicremove);
 
         // Define data structure to capture physical inputs
-        //struct input_event adckeysie;
+        struct input_event adckeysie;
 
         // you can write events one at a time, but to save overhead we'll
         // update all of them in a single write
@@ -306,17 +310,10 @@ int main(void) {
 
                 // Update screen status and MMAP variables
                 if (count % 250 == 0) {
-                        //screenison = get_screen_status();
-                        //if (fan_control_isenabled_local == 1) {
-                        //        fanison = get_fan_status();
-                        //}
                         updateMapVars();
                 }
 
-                // Check if screen is off, and make sure to turn the fan off.
-                //if (screenison == 0 && fan_control_isenabled_local == 1 && fanison == 1) {
-                //        send_shell_command("/system/bin/setfan_off.sh");
-                //}
+
 				
 				if (analog_sensitivity_isupdated_local == 1) {* analog_sensitivity_isupdated = 0; analog_sensitivity_isupdated_local = 0; if (* analog_sensitivity != 0) {setAnalogSensitvityTable(* analog_sensitivity);}}
 
@@ -338,18 +335,20 @@ int main(void) {
                                 PHYSICAL_BTN_POWER = gpioie.value;
                         }
                 }
+ 
 
-                //Read input on adc buttons			
-                //read(physical_adc_keys, & adckeysie, sizeof(struct input_event));
+                read(physical_adc_keys, & adckeysie, sizeof(struct input_event));
+                if (adckeysie.type == 1) {
+					
+						if (debug_messages_enabled == 1) {
+							fprintf(stderr, "pmictime:%ld.%06ld\ttype:%u\tcode:%u\tvalue:%d\n", adckeysie.time.tv_sec, adckeysie.time.tv_usec, adckeysie.type, adckeysie.code, adckeysie.value);
+						}
+					
+						if (adckeysie.code == 116) {
+								PHYSICAL_BTN_POWER = adckeysie.value;
+						}
+				}
 
-                // Read physical adc-keys inputs
-                // if (adckeysie.type == 1 && adckeysie.code == 139) {
-
-                        // if (debug_messages_enabled == 1) {
-                                // fprintf(stderr, "adctime:%ld.%06ld\ttype:%u\tcode:%u\tvalue:%d\n", adckeysie.time.tv_sec, adckeysie.time.tv_usec, adckeysie.type, adckeysie.code, adckeysie.value);
-                        // }
-
-                // }
 
                 struct input_event ev[32];
                 memset( & ev, 0, sizeof ev);
