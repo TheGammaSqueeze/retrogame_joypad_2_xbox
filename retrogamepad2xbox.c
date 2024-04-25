@@ -433,6 +433,11 @@ int main(void) {
                         if (ie.code == 68) {
                                 PHYSICAL_BTN_HOME = ie.value;
                         }
+						
+                        // MODE - RG503
+                        if (ie.code == 316) {
+                                PHYSICAL_BTN_BACK = ie.value;
+                        }
 
                         // MODE - HYBRID USAGE WITH BACK BUTTON
                         if (VIRTUAL_BTN_MODE == 1) {
