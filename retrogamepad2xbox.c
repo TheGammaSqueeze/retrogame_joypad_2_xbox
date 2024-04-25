@@ -609,9 +609,9 @@ int main(void) {
                 ev[11].code = BTN_TR;
                 ev[11].value = PHYSICAL_BTN_TR;
 
-                ev[12].type = EV_KEY;
-                ev[12].code = BTN_MODE;
-                ev[12].value = VIRTUAL_BTN_MODE;
+                //ev[12].type = EV_KEY;
+                //ev[12].code = BTN_MODE;
+                //ev[12].value = VIRTUAL_BTN_MODE;
 
                 ev[13].type = EV_KEY;
                 if ( * abxy_layout == 0) {
@@ -639,7 +639,7 @@ int main(void) {
 
                 ev[17].type = EV_KEY;
                 ev[17].code = BTN_SELECT;
-                ev[17].value = PHYSICAL_BTN_SELECT;
+                if (VIRTUAL_BTN_MODE == 1) {ev[17].value = VIRTUAL_BTN_MODE;} else { ev[17].value = PHYSICAL_BTN_SELECT;}
 
                 ev[18].type = EV_KEY;
                 ev[18].code = BTN_START;
@@ -820,14 +820,14 @@ int main(void) {
 						
 
                         // Reset variables when back button no longer pressed
-                        if (ie.code == 158 && ie.value == 0) {
+                        if ((ie.code == 158 || ie.code == 316) && ie.value == 0) {
                                 PHYSICAL_BTN_BACK = 0;
                                 VIRTUAL_BTN_MODE = 0;
                                 VIRTUAL_BTN_1 = 0;
                                 VIRTUAL_BTN_2 = 0;
                         }
 
-                        if (adckeysie.code == 158 && adckeysie.value == 0) {
+                        if ((ie.code == 158 || ie.code == 316) && adckeysie.value == 0) {
                                 PHYSICAL_BTN_BACK = 0;
                                 VIRTUAL_BTN_MODE = 0;
                                 VIRTUAL_BTN_1 = 0;
