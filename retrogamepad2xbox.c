@@ -440,8 +440,8 @@ int main(void) {
                         }
 
                         // DPAD UP/DOWN
-                        if (ie.code == 17) {
-                                if ( * dpad_analog_swap == 1) {
+                        if (ie.code == 17 || ie.code == 544 || ie.code == 545  ) {
+                                if ( * dpad_analog_swap == 1 && ie.code == 17) {
                                         //PHYSICAL_HAT_Y = 0; 
                                         if (ie.value == 0) {
                                                 PHYSICAL_ABS_Y = 0;
@@ -453,13 +453,21 @@ int main(void) {
                                                 PHYSICAL_ABS_Y = -1800;
                                         }
                                 } else {
+
+                                        if (ie.code == 17) {
                                         PHYSICAL_HAT_Y = ie.value;
+                                        } else 
+                                        {
+                                           if (ie.code == 544) {PHYSICAL_HAT_Y = -ie.value;}
+                                           if (ie.code == 545) {PHYSICAL_HAT_Y = ie.value;}
+                                        }
+
                                 }
                         }
 
                         // DPAD LEFT/RIGHT
-                        if (ie.code == 16) {
-                                if ( * dpad_analog_swap == 1) {
+                        if (ie.code == 16 || ie.code == 546 || ie.code == 547 ) {
+                                if ( * dpad_analog_swap == 1 && ie.code == 16) {
                                         //PHYSICAL_HAT_X = 0; 
                                         if (ie.value == 0) {
                                                 PHYSICAL_ABS_X = 0;
@@ -471,7 +479,13 @@ int main(void) {
                                                 PHYSICAL_ABS_X = -1800;
                                         }
                                 } else {
+                                        if(ie.code == 16){
                                         PHYSICAL_HAT_X = ie.value;
+                                        } else 
+                                        {
+                                           if (ie.code == 546) {PHYSICAL_HAT_X = -ie.value;}
+                                           if (ie.code == 547) {PHYSICAL_HAT_X = ie.value;}
+                                        }
                                 }
                         }
 
