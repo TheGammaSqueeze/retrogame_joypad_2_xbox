@@ -339,7 +339,7 @@ int main(void) {
                 if (adckeysie.type == 1 && adckeysie.code == 158) {
 
                         if (debug_messages_enabled == 1) {
-                                fprintf(stderr, "time:%ld.%06ld\ttype:%u\tcode:%u\tvalue:%d\n", adckeysie.time.tv_sec, adckeysie.time.tv_usec, adckeysie.type, adckeysie.code, adckeysie.value);
+                                fprintf(stderr, "ADCKEYS time:%ld.%06ld\ttype:%u\tcode:%u\tvalue:%d\n", adckeysie.time.tv_sec, adckeysie.time.tv_usec, adckeysie.type, adckeysie.code, adckeysie.value);
                         }
 
                 }
@@ -706,32 +706,6 @@ int main(void) {
                 ev[31].code = SYN_REPORT;
                 ev[31].value = 0;
 
- //               if (screenison == 1 || (screenison == 0 && PHYSICAL_BTN_POWER == 1)) {
-
-                        // // Fan stuff
-                        // if (fan_control_isupdated_local == 1 && fan_control_isenabled_local == 1) {
-                                // fanControl();
-                                // fan_control_isupdated_local = 0;
-                                // * fan_control_isupdated = 0;
-                        // }
-
-                        // if (count % 2500 == 0 && fan_control_isenabled_local == 1) {
-                                // if (screenison == 1) {
-                                        // fanControl();
-                                // }
-                                // if ( * fan_control == 1) {
-                                        // int currentTemp = get_cpu_temp();
-                                        // if (currentTemp < 60) {
-                                                // send_shell_command("/system/bin/setfan_off.sh");
-                                        // }
-                                        // if (currentTemp >= 60 && currentTemp < 75) {
-                                                // send_shell_command("/system/bin/setfan_cool.sh");
-                                        // }
-                                        // if (currentTemp >= 75) {
-                                                // send_shell_command("/system/bin/setfan_max.sh");
-                                        // }
-                                // }
-                        // }
 
                         if (write(fd, & ev, sizeof ev) < 0) {
                                 perror("write");
@@ -765,7 +739,7 @@ int main(void) {
                                 }
 
                                 // Check if back button pressed and released quickly, send back keyevent
-                                if (PHYSICAL_BTN_BACK == 0 && backcount < 300 && backpresscomplete == 0) {
+                                if (PHYSICAL_BTN_BACK == 0 && backcount < 150 && backpresscomplete == 0) {
                                         if (get_retroarch_status() == 0) {
                                                 send_shell_command("input keyevent 4");
                                                 fprintf(stderr, "RA Not Active\n");
@@ -778,7 +752,7 @@ int main(void) {
                                 }
 
                                 // Check if back button held down with no other buttons pressed, send home keyevent
-                                if (PHYSICAL_BTN_BACK == 1 && backcount > 300 && homepresscomplete == 0) {
+                                if (PHYSICAL_BTN_BACK == 1 && backcount > 150 && homepresscomplete == 0) {
                                         if (get_retroarch_status() == 0) {
                                                 send_shell_command("input keyevent 3");
                                                 fprintf(stderr, "RA Not Active\n");
@@ -827,7 +801,7 @@ int main(void) {
                                 VIRTUAL_BTN_2 = 0;
                         }
 
-                        if ((ie.code == 158 || ie.code == 316) && adckeysie.value == 0) {
+                        if ((adckeysie.code == 158 || adckeysie.code == 316) && adckeysie.value == 0) {
                                 PHYSICAL_BTN_BACK = 0;
                                 VIRTUAL_BTN_MODE = 0;
                                 VIRTUAL_BTN_1 = 0;
