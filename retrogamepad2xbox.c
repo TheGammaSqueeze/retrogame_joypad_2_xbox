@@ -538,12 +538,12 @@ int main(void) {
                         }
 
                         // RIGHT ANALOG Y
-                        if (ie.code == 2) {
+                        if (ie.code == 2 || ie.code == 3) {
                                 if (* analog_sensitivity != 0) {PHYSICAL_ABS_Z = lookupValue(ie.value);} else {PHYSICAL_ABS_Z = ie.value;}
                         }
 
                         // RIGHT ANALOG X
-                        if (ie.code == 5) {
+                        if (ie.code == 5 || ie.code == 4) {
                                 if (* analog_sensitivity != 0) {PHYSICAL_ABS_RZ = lookupValue(ie.value);} else {PHYSICAL_ABS_RZ = ie.value;}
                         }
                 }
