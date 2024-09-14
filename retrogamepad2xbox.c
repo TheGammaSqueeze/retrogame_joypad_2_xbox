@@ -840,11 +840,11 @@ int main(void) {
 
     char rgpremove[1000] = "rm ";
     strcat(rgpremove, openrgp);
-    //send_shell_command(rgpremove);
+    send_shell_command(rgpremove);
 
     char tjpremove[1000] = "rm /dev/input/";
     strcat(tjpremove, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A1 input/touch_joypad | grep -Eo 'event[0-9]+'"));
-    //send_shell_command(tjpremove);
+    send_shell_command(tjpremove);
 
     // Define data structure to capture physical inputs
     struct input_event ie;
@@ -1570,11 +1570,11 @@ int main(void) {
             }
 
             // Stop brightness control when buttons are released
-            if (ie.code == 158 && ie.value == 0 && PHYSICAL_BTN_VOLUMEUP == 0 && PHYSICAL_BTN_VOLUMEDOWN == 0 && PHYSICAL_ABS_RZ < 1500 && PHYSICAL_ABS_RZ > -1500) {
+            if ((ie.code == 158 || ie.code == 316) && ie.value == 0 && PHYSICAL_BTN_VOLUMEUP == 0 && PHYSICAL_BTN_VOLUMEDOWN == 0 && PHYSICAL_ABS_RZ < 1500 && PHYSICAL_ABS_RZ > -1500) {
                 isadjustingbrightness = 0;
             }
 
-            if (adckeysie.code == 158 && adckeysie.value == 0 && PHYSICAL_BTN_VOLUMEUP == 0 && PHYSICAL_BTN_VOLUMEDOWN == 0 && PHYSICAL_ABS_RZ < 1500 && PHYSICAL_ABS_RZ > -1500) {
+            if ((adckeysie.code == 158 || ie.code == 316) && adckeysie.value == 0 && PHYSICAL_BTN_VOLUMEUP == 0 && PHYSICAL_BTN_VOLUMEDOWN == 0 && PHYSICAL_ABS_RZ < 1500 && PHYSICAL_ABS_RZ > -1500) {
                 isadjustingbrightness = 0;
             }
 
