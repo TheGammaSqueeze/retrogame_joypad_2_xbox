@@ -16,9 +16,8 @@
 #define msleep(ms) usleep((ms) * 1000)
 #define RETRY_DELAY 5000 // Retry delay in microseconds (5 milliseconds)
 
-#define MOUSE_SPEED 1 // Default speed of mouse movement
-#define SCROLL_THRESHOLD 500
-#define SCROLL_SPEED 1 // Base scrolling speed
+#define MOUSE_ANALOG_THRESHOLD 80
+#define MOUSE_ANALOG_SPEED 1 // Default speed of mouse movement
 
 // Global variable declarations
 const int debug_messages_enabled = 0;
@@ -76,7 +75,7 @@ int mouse_mode = 0;
 int select_pressed_time = 0;
 int r1_pressed_time = 0;
 int select_and_r1_timer_started = 0;
-int mouse_speed = MOUSE_SPEED;
+int mouse_speed = MOUSE_ANALOG_THRESHOLD;
 
 // New method to enable mouse mode
 void enable_mouse_mode(int fd) {
@@ -1207,9 +1206,9 @@ int main(void) {
         if (mouse_mode) {
             // Adjust mouse speed based on X button press
             if (PHYSICAL_BTN_X == 1) {
-                mouse_speed = MOUSE_SPEED * 2;
+                mouse_speed = MOUSE_ANALOG_SPEED * 2;
             } else {
-                mouse_speed = MOUSE_SPEED;
+                mouse_speed = MOUSE_ANALOG_SPEED;
             }
 
             // Mouse movement using DPAD
@@ -1234,24 +1233,24 @@ int main(void) {
             }
 
             // Mouse movement using LEFT ANALOG
-            if (PHYSICAL_ABS_Y > 100) {
+            if (PHYSICAL_ABS_Y > MOUSE_ANALOG_THRESHOLD && (count % 2 == 0)) {
                 mouse_ev[0].type = EV_REL;
                 mouse_ev[0].code = REL_Y;
-                mouse_ev[0].value = mouse_speed;
-            } else if (PHYSICAL_ABS_Y < -100) {
+				mouse_ev[0].value = round(PHYSICAL_ABS_Y / 500.00 * mouse_speed);
+            } else if (PHYSICAL_ABS_Y < -MOUSE_ANALOG_THRESHOLD && (count % 3 == 0)) {
                 mouse_ev[0].type = EV_REL;
                 mouse_ev[0].code = REL_Y;
-                mouse_ev[0].value = -mouse_speed;
+                mouse_ev[0].value = round(PHYSICAL_ABS_Y / 500.00 * mouse_speed);
             }
 
-            if (PHYSICAL_ABS_X > 100) {
+            if (PHYSICAL_ABS_X > MOUSE_ANALOG_THRESHOLD && (count % 3 == 0)) {
                 mouse_ev[1].type = EV_REL;
                 mouse_ev[1].code = REL_X;
-                mouse_ev[1].value = mouse_speed;
-            } else if (PHYSICAL_ABS_X < -100) {
+                mouse_ev[1].value = round(PHYSICAL_ABS_X / 500.00 * mouse_speed);
+            } else if (PHYSICAL_ABS_X < -MOUSE_ANALOG_THRESHOLD && (count % 3 == 0)) {
                 mouse_ev[1].type = EV_REL;
                 mouse_ev[1].code = REL_X;
-                mouse_ev[1].value = -mouse_speed;
+                mouse_ev[1].value = round(PHYSICAL_ABS_X / 500.00 * mouse_speed);
             }
 
             mouse_ev[2].type = EV_SYN;
@@ -1339,22 +1338,22 @@ int main(void) {
 			memset(&scroll_ev, 0, sizeof scroll_ev);
 
 			// Scroll wheel emulation using RIGHT ANALOG Y (PHYSICAL_ABS_RZ)
-			if ((PHYSICAL_ABS_RZ < SCROLL_THRESHOLD) && PHYSICAL_ABS_RZ != 0 && count % 20 == 0) {
+			if ((PHYSICAL_ABS_RZ < -MOUSE_ANALOG_THRESHOLD) && PHYSICAL_ABS_RZ != 0 && count % 20 == 0) {
 				scroll_ev[0].type = EV_REL;
 				scroll_ev[0].code = REL_WHEEL;
-				scroll_ev[0].value = -floor(PHYSICAL_ABS_RZ / 500.00 * SCROLL_SPEED) ; // Scale scrolling speed
-			} else if ((PHYSICAL_ABS_RZ > -SCROLL_THRESHOLD) && PHYSICAL_ABS_RZ != 0 && count % 20 == 0) {
+				scroll_ev[0].value = -floor(PHYSICAL_ABS_RZ / 500.00 * mouse_speed) ; // Scale scrolling speed
+			} else if ((PHYSICAL_ABS_RZ > MOUSE_ANALOG_THRESHOLD) && PHYSICAL_ABS_RZ != 0 && count % 20 == 0) {
 				scroll_ev[0].type = EV_REL;
 				scroll_ev[0].code = REL_WHEEL;
-				scroll_ev[0].value = -ceil(PHYSICAL_ABS_RZ / 500.00 * SCROLL_SPEED); // Scale scrolling speed
+				scroll_ev[0].value = -ceil(PHYSICAL_ABS_RZ / 500.00 * mouse_speed); // Scale scrolling speed
 			} else if (PHYSICAL_BTN_TL == 1 && count % 20 == 0) {
 				scroll_ev[0].type = EV_REL;
 				scroll_ev[0].code = REL_WHEEL;
-				scroll_ev[0].value = 1; // Scale scrolling speed
-			} else if (PHYSICAL_BTN_TR == 1 && count % 20 == 0) {
+				scroll_ev[0].value = 1 * mouse_speed; // Scale scrolling speed
+			} else if (PHYSICAL_BTN_TR == 1 && PHYSICAL_BTN_SELECT == 0 && count % 20 == 0) {
 				scroll_ev[0].type = EV_REL;
 				scroll_ev[0].code = REL_WHEEL;
-				scroll_ev[0].value = -1; // Scale scrolling speed
+				scroll_ev[0].value = -1 * mouse_speed; // Scale scrolling speed
 			} else {
 				scroll_ev[0].type = EV_REL;
 				scroll_ev[0].code = REL_WHEEL;
@@ -1366,22 +1365,22 @@ int main(void) {
 			scroll_ev[1].value = 0;
 			
 			// Horizontal scroll wheel emulation using RIGHT ANALOG X (PHYSICAL_ABS_Z)
-			if ((PHYSICAL_ABS_Z < -SCROLL_THRESHOLD) && count % 20 == 0) {
+			if ((PHYSICAL_ABS_Z < -MOUSE_ANALOG_THRESHOLD) && PHYSICAL_ABS_Z != 0 && count % 20 == 0) {
 				scroll_ev[1].type = EV_REL;
 				scroll_ev[1].code = REL_HWHEEL;
-				scroll_ev[1].value = ceil(PHYSICAL_ABS_Z / 500.00 * SCROLL_SPEED); // Scale scrolling speed
-			} else if ((PHYSICAL_ABS_Z > SCROLL_THRESHOLD) && count % 20 == 0) {
+				scroll_ev[1].value = ceil(PHYSICAL_ABS_Z / 500.00 * mouse_speed); // Scale scrolling speed
+			} else if ((PHYSICAL_ABS_Z > MOUSE_ANALOG_THRESHOLD) && PHYSICAL_ABS_Z != 0 && count % 20 == 0) {
 				scroll_ev[1].type = EV_REL;
 				scroll_ev[1].code = REL_HWHEEL;
-				scroll_ev[1].value = floor(PHYSICAL_ABS_Z / 500.00 * SCROLL_SPEED); // Scale scrolling speed
+				scroll_ev[1].value = floor(PHYSICAL_ABS_Z / 500.00 * mouse_speed); // Scale scrolling speed
 			} else if (PHYSICAL_BTN_TL2 == 1 && count % 20 == 0) {
 				scroll_ev[1].type = EV_REL;
 				scroll_ev[1].code = REL_HWHEEL;
-				scroll_ev[1].value = -1;
+				scroll_ev[1].value = -1 * mouse_speed;
 			} else if (PHYSICAL_BTN_TR2 == 1 && count % 20 == 0) {
 				scroll_ev[1].type = EV_REL;
 				scroll_ev[1].code = REL_HWHEEL;
-				scroll_ev[1].value = 1;
+				scroll_ev[1].value = 1 * mouse_speed;
 			}  else {
 				scroll_ev[1].type = EV_REL;
 				scroll_ev[1].code = REL_HWHEEL;
