@@ -1347,6 +1347,14 @@ int main(void) {
 				scroll_ev[0].type = EV_REL;
 				scroll_ev[0].code = REL_WHEEL;
 				scroll_ev[0].value = -ceil(PHYSICAL_ABS_RZ / 500.00 * SCROLL_SPEED); // Scale scrolling speed
+			} else if (PHYSICAL_BTN_TL == 1 && count % 20 == 0) {
+				scroll_ev[0].type = EV_REL;
+				scroll_ev[0].code = REL_WHEEL;
+				scroll_ev[0].value = 1; // Scale scrolling speed
+			} else if (PHYSICAL_BTN_TR == 1 && count % 20 == 0) {
+				scroll_ev[0].type = EV_REL;
+				scroll_ev[0].code = REL_WHEEL;
+				scroll_ev[0].value = -1; // Scale scrolling speed
 			} else {
 				scroll_ev[0].type = EV_REL;
 				scroll_ev[0].code = REL_WHEEL;
@@ -1366,7 +1374,15 @@ int main(void) {
 				scroll_ev[1].type = EV_REL;
 				scroll_ev[1].code = REL_HWHEEL;
 				scroll_ev[1].value = floor(PHYSICAL_ABS_Z / 500.00 * SCROLL_SPEED); // Scale scrolling speed
-			} else {
+			} else if (PHYSICAL_BTN_TL2 == 1 && count % 20 == 0) {
+				scroll_ev[1].type = EV_REL;
+				scroll_ev[1].code = REL_HWHEEL;
+				scroll_ev[1].value = -1;
+			} else if (PHYSICAL_BTN_TR2 == 1 && count % 20 == 0) {
+				scroll_ev[1].type = EV_REL;
+				scroll_ev[1].code = REL_HWHEEL;
+				scroll_ev[1].value = 1;
+			}  else {
 				scroll_ev[1].type = EV_REL;
 				scroll_ev[1].code = REL_HWHEEL;
 				scroll_ev[1].value = 0;
