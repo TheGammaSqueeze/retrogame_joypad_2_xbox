@@ -83,7 +83,7 @@ void enable_mouse_mode(int fd) {
     fprintf(stderr, "Mouse mode enabled\n");
 
     // Clear all button states
-    struct input_event ev[32];
+    struct input_event ev[33];
     memset(&ev, 0, sizeof ev);
     
     ev[0].type = EV_KEY;
@@ -215,9 +215,9 @@ void enable_mouse_mode(int fd) {
     ev[31].value = 0;
 
     // sync event tells input layer we're done with a "batch" of updates
-    ev[31].type = EV_SYN;
-    ev[31].code = SYN_REPORT;
-    ev[31].value = 0;
+    ev[32].type = EV_SYN;
+    ev[32].code = SYN_REPORT;
+    ev[32].value = 0;
 
     if (write(fd, &ev, sizeof ev) < 0) {
         perror("write");
@@ -983,7 +983,7 @@ int main(void) {
             }
         }
 
-        struct input_event ev[32];
+        struct input_event ev[33];
         memset(&ev, 0, sizeof ev);
         read(physical_retrogame_joypad, &ie, sizeof(struct input_event));
 
@@ -1527,11 +1527,11 @@ int main(void) {
             }
 
             ev[24].type = EV_KEY;
-            ev[24].code = BTN_C;
+            ev[24].code = BTN_THUMBL;
             ev[24].value = PHYSICAL_BTN_C;
 
             ev[25].type = EV_KEY;
-            ev[25].code = BTN_Z;
+            ev[25].code = BTN_THUMBR;
             ev[25].value = PHYSICAL_BTN_Z;
 
             ev[26].type = EV_KEY;
@@ -1560,12 +1560,14 @@ int main(void) {
             ev[31].type = EV_SYN;
             ev[31].code = SYN_REPORT;
             ev[31].value = 0;
-
-            if (write(fd, &ev, sizeof ev) < 0) {
-                perror("write");
-                return 1;
-            }
-
+			
+			if (!mouse_mode) {
+				if (write(fd, &ev, sizeof ev) < 0) {
+					perror("write");
+					return 1;
+				}
+			}
+			
             //Support for 353 series back button
             if (adckeysie.type == 1 && adckeysie.code == 158) {
                 PHYSICAL_BTN_BACK = adckeysie.value;
