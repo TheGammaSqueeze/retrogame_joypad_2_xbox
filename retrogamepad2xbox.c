@@ -17,7 +17,7 @@
 #define RETRY_DELAY 5000 // Retry delay in microseconds (5 milliseconds)
 
 #define MOUSE_SPEED 1 // Default speed of mouse movement
-#define SCROLL_THRESHOLD 100
+#define SCROLL_THRESHOLD 500
 #define SCROLL_SPEED 1 // Base scrolling speed
 
 // Global variable declarations
@@ -764,6 +764,7 @@ int main(void) {
     ioctl(mouse_fd, UI_SET_KEYBIT, BTN_LEFT);
     ioctl(mouse_fd, UI_SET_KEYBIT, BTN_RIGHT);
 	ioctl(mouse_fd, UI_SET_RELBIT, REL_WHEEL);
+	ioctl(mouse_fd, UI_SET_RELBIT, REL_HWHEEL);
 
     ioctl(mouse_fd, UI_SET_EVBIT, EV_REL); // enable relative position handling for mouse
     ioctl(mouse_fd, UI_SET_RELBIT, REL_X);
@@ -1334,7 +1335,7 @@ int main(void) {
                 bpresscomplete = 0;
             }
 			
-			struct input_event scroll_ev[2];
+			struct input_event scroll_ev[4];
 			memset(&scroll_ev, 0, sizeof scroll_ev);
 
 			// Scroll wheel emulation using RIGHT ANALOG Y (PHYSICAL_ABS_RZ)
@@ -1355,6 +1356,26 @@ int main(void) {
 			scroll_ev[1].type = EV_SYN;
 			scroll_ev[1].code = SYN_REPORT;
 			scroll_ev[1].value = 0;
+			
+			// Horizontal scroll wheel emulation using RIGHT ANALOG X (PHYSICAL_ABS_Z)
+			if ((PHYSICAL_ABS_Z < -SCROLL_THRESHOLD) && count % 20 == 0) {
+				scroll_ev[1].type = EV_REL;
+				scroll_ev[1].code = REL_HWHEEL;
+				scroll_ev[1].value = ceil(PHYSICAL_ABS_Z / 500.00 * SCROLL_SPEED); // Scale scrolling speed
+			} else if ((PHYSICAL_ABS_Z > SCROLL_THRESHOLD) && count % 20 == 0) {
+				scroll_ev[1].type = EV_REL;
+				scroll_ev[1].code = REL_HWHEEL;
+				scroll_ev[1].value = floor(PHYSICAL_ABS_Z / 500.00 * SCROLL_SPEED); // Scale scrolling speed
+			} else {
+				scroll_ev[1].type = EV_REL;
+				scroll_ev[1].code = REL_HWHEEL;
+				scroll_ev[1].value = 0;
+			}
+
+			// Synchronization event
+			scroll_ev[2].type = EV_SYN;
+			scroll_ev[2].code = SYN_REPORT;
+			scroll_ev[2].value = 0;
 			
 			if (write(mouse_fd, &scroll_ev, sizeof(scroll_ev)) < 0) {
 				perror("write mouse scroll event");
