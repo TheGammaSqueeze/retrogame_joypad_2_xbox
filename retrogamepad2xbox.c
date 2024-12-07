@@ -1482,13 +1482,23 @@ int main(void) {
             }
             ev[14].value = PHYSICAL_BTN_Y;
 
-            ev[15].type = EV_KEY;
-            ev[15].code = BTN_THUMBL;
-            ev[15].value = PHYSICAL_BTN_THUMBL;
+			// Update BTN_THUMBL logic
+			ev[15].type = EV_KEY;
+			ev[15].code = BTN_THUMBL;
+			if (PHYSICAL_BTN_C == 1 || PHYSICAL_BTN_THUMBL == 1) {
+				ev[15].value = 1; // Register as pressed if either C or THUMBL is pressed
+			} else {
+				ev[15].value = 0; // Not pressed otherwise
+			}
 
-            ev[16].type = EV_KEY;
-            ev[16].code = BTN_THUMBR;
-            ev[16].value = PHYSICAL_BTN_THUMBR;
+			// Update BTN_THUMBR logic
+			ev[16].type = EV_KEY;
+			ev[16].code = BTN_THUMBR;
+			if (PHYSICAL_BTN_Z == 1 || PHYSICAL_BTN_THUMBR == 1) {
+				ev[16].value = 1; // Register as pressed if either Z or THUMBR is pressed
+			} else {
+				ev[16].value = 0; // Not pressed otherwise
+			}
 
             ev[17].type = EV_KEY;
             ev[17].code = BTN_SELECT;
@@ -1525,14 +1535,6 @@ int main(void) {
             } else {
                 ev[23].value = -PHYSICAL_ABS_RZ;
             }
-
-            ev[24].type = EV_KEY;
-            ev[24].code = BTN_THUMBL;
-            ev[24].value = PHYSICAL_BTN_C;
-
-            ev[25].type = EV_KEY;
-            ev[25].code = BTN_THUMBR;
-            ev[25].value = PHYSICAL_BTN_Z;
 
             ev[26].type = EV_KEY;
             ev[26].code = BTN_1;
