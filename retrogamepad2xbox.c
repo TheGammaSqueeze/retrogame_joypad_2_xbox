@@ -81,6 +81,7 @@ int mouse_speed = MOUSE_ANALOG_THRESHOLD;
 void enable_mouse_mode(int fd) {
     mouse_mode = 1;
     fprintf(stderr, "Mouse mode enabled\n");
+    send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Mouse mode enabled. Hold down Select and R1 to disable.' -n bellavita.toast/.MainActivity\"");
 
     // Clear all button states
     struct input_event ev[33];
@@ -1709,6 +1710,7 @@ int main(void) {
             } else if (count - select_pressed_time >= 250 && count - r1_pressed_time >= 250) {
                 if (mouse_mode) {
                     disable_mouse_mode();
+                       send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Mouse mode disabled. Hold down Select and R1 to enable.' -n bellavita.toast/.MainActivity\"");
                 } else {
                     enable_mouse_mode(fd);
                 }
