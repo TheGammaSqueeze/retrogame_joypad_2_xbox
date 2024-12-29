@@ -472,7 +472,7 @@ static void createAnalogSensitvityCSV() {
         chmod(filepath, 0666);
 
         // Write data to CSV
-        for (int i = -1800; i <= 1800; i++) {
+        for (int i = -32768; i <= 32768; i++) {
             double secondValue;
             if (i == 0) {
                 // Keep 0 as is
@@ -513,7 +513,7 @@ static void createAnalogSensitvityCSV() {
         chmod(filepath, 0666);
 
         // Write data to CSV
-        for (int i = -1800; i <= 1800; i++) {
+        for (int i = -32768; i <= 32768; i++) {
             double secondValue;
             if (i == 0) {
                 // Keep 0 as is
@@ -555,7 +555,7 @@ static void createAnalogSensitvityCSV() {
         chmod(filepath, 0666);
 
         // Write data to CSV
-        for (int i = -1800; i <= 1800; i++) {
+        for (int i = -32768; i <= 32768; i++) {
             double secondValue;
             if (i == 0) {
                 // Keep 0 as is
@@ -598,7 +598,7 @@ static void createAnalogSensitvityCSV() {
         chmod(filepath, 0666);
 
         // Write data to CSV
-        for (int i = -1800; i <= 1800; i++) {
+        for (int i = -32768; i <= 32768; i++) {
             fprintf(file, "%d,%d\n", i, i);
         }
 
@@ -747,11 +747,11 @@ int main(void) {
 
     ioctl(fd, UI_SET_EVBIT, EV_ABS); // enable analog absolute position handling
 
-    setup_abs(fd, ABS_X, -1800, 1800);
-    setup_abs(fd, ABS_Y, -1800, 1800);
+    setup_abs(fd, ABS_X, -32768, 32768);
+    setup_abs(fd, ABS_Y, -32768, 32768);
 
-    setup_abs(fd, ABS_Z, -1800, 1800);
-    setup_abs(fd, ABS_RZ, -1800, 1800);
+    setup_abs(fd, ABS_Z, -32768, 32768);
+    setup_abs(fd, ABS_RZ, -32768, 32768);
 
     setup_abs(fd, ABS_GAS, 0, 1);
     setup_abs(fd, ABS_BRAKE, 0, 1);
@@ -804,12 +804,6 @@ int main(void) {
         return 1;
     }
 
-    // Unbind retrogame_joypad and rebind
-    fprintf(stderr, "Unbinding retrogame_joypad...\n");
-    send_shell_command("echo singleadc-joypad > /sys/bus/platform/drivers/singleadc-joypad/unbind");
-    send_shell_command("echo singleadc-joypad > /sys/bus/platform/drivers/singleadc-joypad/unbind");
-    sleep(3);
-
     fprintf(stderr, "Create virtual controller uinput device...\n");
     if (ioctl(fd, UI_DEV_CREATE)) {
         perror("UI_DEV_CREATE");
@@ -822,21 +816,10 @@ int main(void) {
         return 1;
     }
 
-    fprintf(stderr, "Rebinding retrogame_joypad, force a failure\n");
-    send_shell_command("echo singleadc-joypad > /sys/bus/platform/drivers/singleadc-joypad/bind");
-    sleep(1);
-    fprintf(stderr, "Clean up any left over retrogame_joypad files\n");
-    send_shell_command("rm -rf /sys/devices/platform/singleadc-joypad");
-    send_shell_command("rm -rf /sys/devices/platform/singleadc-joypad");
-    sleep(1);
-    fprintf(stderr, "Finally bind the physical retrogame_joypad again\n");
-    send_shell_command("echo singleadc-joypad > /sys/bus/platform/drivers/singleadc-joypad/bind");
-    sleep(1);
-
     // Create /dev/input/event# string by using grep to get physical retrogame_joypad event number
     char openrgp[1000] = "/dev/input/";
-    strcat(openrgp, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A1 retrogame_joypad/ | grep -Eo 'event[0-9]+'"));
-    fprintf(stderr, "Physical retrogame_joypad: %s\nReady.\n", openrgp);
+    strcat(openrgp, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A2 magicx-input | grep -Eo 'event[0-9]+'"));
+    fprintf(stderr, "Physical magicx-input: %s\nReady.\n", openrgp);
 
     // Open physical_retrogame_joypad, with exclusive access to this application only
     int physical_retrogame_joypad = open(openrgp, O_RDWR | O_NONBLOCK, S_IRUSR | S_IWUSR);
@@ -845,10 +828,6 @@ int main(void) {
     char rgpremove[1000] = "rm ";
     strcat(rgpremove, openrgp);
     send_shell_command(rgpremove);
-
-    char tjpremove[1000] = "rm /dev/input/";
-    strcat(tjpremove, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A1 input/touch_joypad | grep -Eo 'event[0-9]+'"));
-    send_shell_command(tjpremove);
 
     // Define data structure to capture physical inputs
     struct input_event ie;
@@ -994,6 +973,14 @@ int main(void) {
                 fprintf(stderr, "time:%ld.%06ld\ttype:%u\tcode:%u\tvalue:%d\n", ie.time.tv_sec, ie.time.tv_usec, ie.type, ie.code, ie.value);
             }
 
+
+            if (ie.code == 114) {
+                PHYSICAL_BTN_VOLUMEDOWN = ie.value;
+            }
+            if (ie.code == 115) {
+                PHYSICAL_BTN_VOLUMEUP = ie.value;
+            }
+			
             // L1
             if (ie.code == 310) {
                 PHYSICAL_BTN_TL = ie.value;
@@ -1084,72 +1071,98 @@ int main(void) {
                 PHYSICAL_BTN_BACK = 0;
             }
 
-            // DPAD UP/DOWN
-            if (ie.code == 17 || ie.code == 544 || ie.code == 545) {
-                if (*dpad_analog_swap == 1 && (ie.code == 17 || ie.code == 544 || ie.code == 545)) {
-                    if (ie.code == 17 && ie.value == 1) {
-                        PHYSICAL_ABS_Y = 1800;
-                    } else if (ie.code == 17 && ie.value == -1) {
-                        PHYSICAL_ABS_Y = -1800;
-                    } else if (ie.code == 544 && ie.value == 1) {
-                        PHYSICAL_ABS_Y = -1800;
-                    } else if (ie.code == 545 && ie.value == 1) {
-                        PHYSICAL_ABS_Y = 1800;
-                    } else {
-                        PHYSICAL_ABS_Y = 0;
-                    }
-                } else {
-                    if (ie.code == 17) {
-                        PHYSICAL_HAT_Y = ie.value;
-                    } else {
-                        if (ie.code == 544) {
-                            PHYSICAL_HAT_Y = -ie.value;
-                        }
-                        if (ie.code == 545) {
-                            PHYSICAL_HAT_Y = ie.value;
-                        }
-                    }
-                }
-            }
+			// DPAD UP/DOWN
+			// Original codes: 17 (vertical axis), 544 (UP), 545 (DOWN)
+			// New codes: 103 (UP), 108 (DOWN)
+			if (ie.code == 17 || ie.code == 544 || ie.code == 545 || ie.code == 103 || ie.code == 108) {
+				// Check if we’re swapping DPAD with left analog
+				if (*dpad_analog_swap == 1 && (ie.code == 17 || ie.code == 544 || ie.code == 545 || ie.code == 103 || ie.code == 108)) {
+					// Swap logic: controlling PHYSICAL_ABS_Y instead of PHYSICAL_HAT_Y
+					if (ie.code == 17 && ie.value == 1) {
+						PHYSICAL_ABS_Y = 32768;
+					} else if (ie.code == 17 && ie.value == -1) {
+						PHYSICAL_ABS_Y = -32768;
+					} 
+					else if ((ie.code == 544 || ie.code == 103) && ie.value == 1) {
+						// Both 544 and 103 are "DPAD UP", which normally means negative Y
+						PHYSICAL_ABS_Y = -32768;
+					} 
+					else if ((ie.code == 545 || ie.code == 108) && ie.value == 1) {
+						// Both 545 and 108 are "DPAD DOWN", which normally means positive Y
+						PHYSICAL_ABS_Y = 32768;
+					} 
+					else {
+						PHYSICAL_ABS_Y = 0;
+					}
+				} else {
+					// Normal DPAD logic (no swap)
+					if (ie.code == 17) {
+						// '17' often means up (value = -1) or down (value = 1)
+						PHYSICAL_HAT_Y = ie.value; 
+					} else {
+						// 544, 103 = UP (so Y = -1 when pressed) 
+						// 545, 108 = DOWN (so Y = 1 when pressed)
+						if (ie.code == 544 || ie.code == 103) {
+							PHYSICAL_HAT_Y = -ie.value;
+						}
+						if (ie.code == 545 || ie.code == 108) {
+							PHYSICAL_HAT_Y = ie.value;
+						}
+					}
+				}
+			}
 
-            // DPAD LEFT/RIGHT
-            if (ie.code == 16 || ie.code == 546 || ie.code == 547) {
-                if (*dpad_analog_swap == 1 && (ie.code == 16 || ie.code == 546 || ie.code == 547)) {
-                    if (ie.code == 16 && ie.value == 1) {
-                        PHYSICAL_ABS_X = 1800;
-                    } else if (ie.code == 16 && ie.value == -1) {
-                        PHYSICAL_ABS_X = -1800;
-                    } else if (ie.code == 546 && ie.value == 1) {
-                        PHYSICAL_ABS_X = -1800;
-                    } else if (ie.code == 547 && ie.value == 1) {
-                        PHYSICAL_ABS_X = 1800;
-                    } else {
-                        PHYSICAL_ABS_X = 0;
-                    }
-                } else {
-                    if (ie.code == 16) {
-                        PHYSICAL_HAT_X = ie.value;
-                    } else {
-                        if (ie.code == 546) {
-                            PHYSICAL_HAT_X = -ie.value;
-                        }
-                        if (ie.code == 547) {
-                            PHYSICAL_HAT_X = ie.value;
-                        }
-                    }
-                }
-            }
+			// DPAD LEFT/RIGHT
+			// Original codes: 16 (horizontal axis), 546 (LEFT), 547 (RIGHT)
+			// New codes: 105 (LEFT), 106 (RIGHT)
+			if (ie.code == 16 || ie.code == 546 || ie.code == 547 || ie.code == 105 || ie.code == 106) {
+				// Check if we’re swapping DPAD with left analog
+				if (*dpad_analog_swap == 1 && (ie.code == 16 || ie.code == 546 || ie.code == 547 || ie.code == 105 || ie.code == 106)) {
+					// Swap logic: controlling PHYSICAL_ABS_X instead of PHYSICAL_HAT_X
+					if (ie.code == 16 && ie.value == 1) {
+						PHYSICAL_ABS_X = 32768;
+					} else if (ie.code == 16 && ie.value == -1) {
+						PHYSICAL_ABS_X = -32768;
+					} 
+					else if ((ie.code == 546 || ie.code == 105) && ie.value == 1) {
+						// Both 546 and 105 are "DPAD LEFT", which normally means negative X
+						PHYSICAL_ABS_X = -32768;
+					} 
+					else if ((ie.code == 547 || ie.code == 106) && ie.value == 1) {
+						// Both 547 and 106 are "DPAD RIGHT", which normally means positive X
+						PHYSICAL_ABS_X = 32768;
+					} 
+					else {
+						PHYSICAL_ABS_X = 0;
+					}
+				} else {
+					// Normal DPAD logic (no swap)
+					if (ie.code == 16) {
+						// '16' often means left (value = -1) or right (value = 1)
+						PHYSICAL_HAT_X = ie.value;
+					} else {
+						// 546, 105 = LEFT (so X = -1 when pressed)
+						// 547, 106 = RIGHT (so X = 1 when pressed)
+						if (ie.code == 546 || ie.code == 105) {
+							PHYSICAL_HAT_X = -ie.value;
+						}
+						if (ie.code == 547 || ie.code == 106) {
+							PHYSICAL_HAT_X = ie.value;
+						}
+					}
+				}
+			}
 
             // LEFT ANALOG Y
             if (ie.code == 1) {
                 if (*dpad_analog_swap == 1) {
-                    if (ie.value < 1000 && ie.value > -1000) {
+                    if (ie.value < 10000 && ie.value > -10000) {
                         PHYSICAL_HAT_Y = 0;
                     }
-                    if (ie.value >= 1000) {
+                    if (ie.value >= 10000) {
                         PHYSICAL_HAT_Y = 1;
                     }
-                    if (ie.value <= -1000) {
+                    if (ie.value <= -10000) {
                         PHYSICAL_HAT_Y = -1;
                     }
                 } else {
@@ -1164,13 +1177,13 @@ int main(void) {
             // LEFT ANALOG X
             if (ie.code == 0) {
                 if (*dpad_analog_swap == 1) {
-                    if (ie.value < 1000 && ie.value > -1000) {
+                    if (ie.value < 10000 && ie.value > -10000) {
                         PHYSICAL_HAT_X = 0;
                     }
-                    if (ie.value >= 1000) {
+                    if (ie.value >= 10000) {
                         PHYSICAL_HAT_X = 1;
                     }
-                    if (ie.value <= -1000) {
+                    if (ie.value <= -10000) {
                         PHYSICAL_HAT_X = -1;
                     }
                 } else {
@@ -1237,21 +1250,21 @@ int main(void) {
             if (PHYSICAL_ABS_Y > MOUSE_ANALOG_THRESHOLD && (count % 2 == 0)) {
                 mouse_ev[0].type = EV_REL;
                 mouse_ev[0].code = REL_Y;
-				mouse_ev[0].value = round(PHYSICAL_ABS_Y / 500.00 * mouse_speed);
+				mouse_ev[0].value = round(PHYSICAL_ABS_Y / 10000.00 * mouse_speed);
             } else if (PHYSICAL_ABS_Y < -MOUSE_ANALOG_THRESHOLD && (count % 3 == 0)) {
                 mouse_ev[0].type = EV_REL;
                 mouse_ev[0].code = REL_Y;
-                mouse_ev[0].value = round(PHYSICAL_ABS_Y / 500.00 * mouse_speed);
+                mouse_ev[0].value = round(PHYSICAL_ABS_Y / 10000.00 * mouse_speed);
             }
 
             if (PHYSICAL_ABS_X > MOUSE_ANALOG_THRESHOLD && (count % 3 == 0)) {
                 mouse_ev[1].type = EV_REL;
                 mouse_ev[1].code = REL_X;
-                mouse_ev[1].value = round(PHYSICAL_ABS_X / 500.00 * mouse_speed);
+                mouse_ev[1].value = round(PHYSICAL_ABS_X / 10000.00 * mouse_speed);
             } else if (PHYSICAL_ABS_X < -MOUSE_ANALOG_THRESHOLD && (count % 3 == 0)) {
                 mouse_ev[1].type = EV_REL;
                 mouse_ev[1].code = REL_X;
-                mouse_ev[1].value = round(PHYSICAL_ABS_X / 500.00 * mouse_speed);
+                mouse_ev[1].value = round(PHYSICAL_ABS_X / 10000.00 * mouse_speed);
             }
 
             mouse_ev[2].type = EV_SYN;
@@ -1575,6 +1588,10 @@ int main(void) {
             if (adckeysie.type == 1 && adckeysie.code == 158) {
                 PHYSICAL_BTN_BACK = adckeysie.value;
             }
+			
+            if (ie.type == 1 && ie.code == 158) {
+                PHYSICAL_BTN_BACK = ie.value;
+            }
 
             // Add logic for back/mode/home functionality
             if (PHYSICAL_BTN_BACK == 1) {
@@ -1721,7 +1738,7 @@ int main(void) {
             select_and_r1_timer_started = 0;
         }
 
-        msleep(4);
+        msleep(2);
         ++count;
     }
 
