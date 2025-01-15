@@ -226,9 +226,149 @@ void enable_mouse_mode(int fd) {
 }
 
 // New method to disable mouse mode
-void disable_mouse_mode() {
+void disable_mouse_mode(int fd) {
     mouse_mode = 0;
     fprintf(stderr, "Mouse mode disabled\n");
+    // Clear all button states
+    struct input_event ev[33];
+    memset(&ev, 0, sizeof ev);
+    
+    ev[0].type = EV_KEY;
+    ev[0].code = BTN_A;
+    ev[0].value = 0;
+    
+    ev[1].type = EV_KEY;
+    ev[1].code = BTN_B;
+    ev[1].value = 0;
+    
+    ev[2].type = EV_KEY;
+    ev[2].code = BTN_X;
+    ev[2].value = 0;
+    
+    ev[3].type = EV_KEY;
+    ev[3].code = BTN_Y;
+    ev[3].value = 0;
+    
+    ev[4].type = EV_KEY;
+    ev[4].code = BTN_TL;
+    ev[4].value = 0;
+    
+    ev[5].type = EV_KEY;
+    ev[5].code = BTN_TR;
+    ev[5].value = 0;
+    
+    ev[6].type = EV_KEY;
+    ev[6].code = BTN_TL2;
+    ev[6].value = 0;
+    
+    ev[7].type = EV_KEY;
+    ev[7].code = BTN_TR2;
+    ev[7].value = 0;
+    
+    ev[8].type = EV_KEY;
+    ev[8].code = BTN_SELECT;
+    ev[8].value = 0;
+    
+    ev[9].type = EV_KEY;
+    ev[9].code = BTN_START;
+    ev[9].value = 0;
+    
+    ev[10].type = EV_KEY;
+    ev[10].code = BTN_THUMBL;
+    ev[10].value = 0;
+    
+    ev[11].type = EV_KEY;
+    ev[11].code = BTN_THUMBR;
+    ev[11].value = 0;
+    
+    ev[12].type = EV_KEY;
+    ev[12].code = BTN_DPAD_UP;
+    ev[12].value = 0;
+    
+    ev[13].type = EV_KEY;
+    ev[13].code = BTN_DPAD_DOWN;
+    ev[13].value = 0;
+    
+    ev[14].type = EV_KEY;
+    ev[14].code = BTN_DPAD_LEFT;
+    ev[14].value = 0;
+    
+    ev[15].type = EV_KEY;
+    ev[15].code = BTN_DPAD_RIGHT;
+    ev[15].value = 0;
+    
+    ev[16].type = EV_KEY;
+    ev[16].code = BTN_BACK;
+    ev[16].value = 0;
+    
+    ev[17].type = EV_KEY;
+    ev[17].code = BTN_MODE;
+    ev[17].value = 0;
+    
+    ev[18].type = EV_KEY;
+    ev[18].code = BTN_GAMEPAD;
+    ev[18].value = 0;
+    
+    ev[19].type = EV_KEY;
+    ev[19].code = KEY_VOLUMEDOWN;
+    ev[19].value = 0;
+    
+    ev[20].type = EV_KEY;
+    ev[20].code = KEY_VOLUMEUP;
+    ev[20].value = 0;
+    
+    ev[21].type = EV_KEY;
+    ev[21].code = KEY_POWER;
+    ev[21].value = 0;
+    
+    ev[22].type = EV_ABS;
+    ev[22].code = ABS_X;
+    ev[22].value = 0;
+    
+    ev[23].type = EV_ABS;
+    ev[23].code = ABS_Y;
+    ev[23].value = 0;
+    
+    ev[24].type = EV_ABS;
+    ev[24].code = ABS_Z;
+    ev[24].value = 0;
+    
+    ev[25].type = EV_ABS;
+    ev[25].code = ABS_RZ;
+    ev[25].value = 0;
+    
+    ev[26].type = EV_ABS;
+    ev[26].code = ABS_GAS;
+    ev[26].value = 0;
+    
+    ev[27].type = EV_ABS;
+    ev[27].code = ABS_BRAKE;
+    ev[27].value = 0;
+    
+    ev[28].type = EV_ABS;
+    ev[28].code = ABS_HAT0X;
+    ev[28].value = 0;
+    
+    ev[29].type = EV_ABS;
+    ev[29].code = ABS_HAT0Y;
+    ev[29].value = 0;
+    
+    ev[30].type = EV_KEY;
+    ev[30].code = BTN_1;
+    ev[30].value = 0;
+    
+    ev[31].type = EV_KEY;
+    ev[31].code = BTN_2;
+    ev[31].value = 0;
+
+    // sync event tells input layer we're done with a "batch" of updates
+    ev[32].type = EV_SYN;
+    ev[32].code = SYN_REPORT;
+    ev[32].value = 0;
+
+    if (write(fd, &ev, sizeof ev) < 0) {
+        perror("write");
+    }	
 }
 
 static void bus_error_handler(int sig) {
@@ -472,7 +612,7 @@ static void createAnalogSensitvityCSV() {
         chmod(filepath, 0666);
 
         // Write data to CSV
-        for (int i = -1800; i <= 1800; i++) {
+        for (int i = -32760; i <= 32760; i++) {
             double secondValue;
             if (i == 0) {
                 // Keep 0 as is
@@ -513,7 +653,7 @@ static void createAnalogSensitvityCSV() {
         chmod(filepath, 0666);
 
         // Write data to CSV
-        for (int i = -1800; i <= 1800; i++) {
+        for (int i = -32760; i <= 32760; i++) {
             double secondValue;
             if (i == 0) {
                 // Keep 0 as is
@@ -555,7 +695,7 @@ static void createAnalogSensitvityCSV() {
         chmod(filepath, 0666);
 
         // Write data to CSV
-        for (int i = -1800; i <= 1800; i++) {
+        for (int i = -32760; i <= 32760; i++) {
             double secondValue;
             if (i == 0) {
                 // Keep 0 as is
@@ -598,7 +738,7 @@ static void createAnalogSensitvityCSV() {
         chmod(filepath, 0666);
 
         // Write data to CSV
-        for (int i = -1800; i <= 1800; i++) {
+        for (int i = -32760; i <= 32760; i++) {
             fprintf(file, "%d,%d\n", i, i);
         }
 
@@ -747,11 +887,11 @@ int main(void) {
 
     ioctl(fd, UI_SET_EVBIT, EV_ABS); // enable analog absolute position handling
 
-    setup_abs(fd, ABS_X, -1800, 1800);
-    setup_abs(fd, ABS_Y, -1800, 1800);
+    setup_abs(fd, ABS_X, -32760, 32760);
+    setup_abs(fd, ABS_Y, -32760, 32760);
 
-    setup_abs(fd, ABS_Z, -1800, 1800);
-    setup_abs(fd, ABS_RZ, -1800, 1800);
+    setup_abs(fd, ABS_Z, -32760, 32760);
+    setup_abs(fd, ABS_RZ, -32760, 32760);
 
     setup_abs(fd, ABS_GAS, 0, 1);
     setup_abs(fd, ABS_BRAKE, 0, 1);
@@ -804,12 +944,6 @@ int main(void) {
         return 1;
     }
 
-    // Unbind retrogame_joypad and rebind
-    fprintf(stderr, "Unbinding retrogame_joypad...\n");
-    send_shell_command("echo singleadc-joypad > /sys/bus/platform/drivers/singleadc-joypad/unbind");
-    send_shell_command("echo singleadc-joypad > /sys/bus/platform/drivers/singleadc-joypad/unbind");
-    sleep(3);
-
     fprintf(stderr, "Create virtual controller uinput device...\n");
     if (ioctl(fd, UI_DEV_CREATE)) {
         perror("UI_DEV_CREATE");
@@ -821,21 +955,10 @@ int main(void) {
         perror("UI_DEV_CREATE for mouse");
         return 1;
     }
-
-    fprintf(stderr, "Rebinding retrogame_joypad, force a failure\n");
-    send_shell_command("echo singleadc-joypad > /sys/bus/platform/drivers/singleadc-joypad/bind");
-    sleep(1);
-    fprintf(stderr, "Clean up any left over retrogame_joypad files\n");
-    send_shell_command("rm -rf /sys/devices/platform/singleadc-joypad");
-    send_shell_command("rm -rf /sys/devices/platform/singleadc-joypad");
-    sleep(1);
-    fprintf(stderr, "Finally bind the physical retrogame_joypad again\n");
-    send_shell_command("echo singleadc-joypad > /sys/bus/platform/drivers/singleadc-joypad/bind");
-    sleep(1);
-
+	
     // Create /dev/input/event# string by using grep to get physical retrogame_joypad event number
     char openrgp[1000] = "/dev/input/";
-    strcat(openrgp, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A1 retrogame_joypad/ | grep -Eo 'event[0-9]+'"));
+    strcat(openrgp, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A2 retrogame_joypad | grep -Eo 'event[0-9]+'"));
     fprintf(stderr, "Physical retrogame_joypad: %s\nReady.\n", openrgp);
 
     // Open physical_retrogame_joypad, with exclusive access to this application only
@@ -846,16 +969,12 @@ int main(void) {
     strcat(rgpremove, openrgp);
     send_shell_command(rgpremove);
 
-    char tjpremove[1000] = "rm /dev/input/";
-    strcat(tjpremove, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A1 input/touch_joypad | grep -Eo 'event[0-9]+'"));
-    send_shell_command(tjpremove);
-
     // Define data structure to capture physical inputs
     struct input_event ie;
 
     // Create /dev/input/event# string by using grep to get physical retrogame_joypad event number
     char opengpio[1000] = "/dev/input/";
-    strcat(opengpio, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A1 gpio-keys/ | grep -Eo 'event[0-9]+'"));
+    strcat(opengpio, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A1 gpio-keys | grep -Eo 'event[0-9]+'"));
     fprintf(stderr, "Physical gpio_keys: %s\nReady.\n", opengpio);
 
     // Open gpio-=keys, no exclusive access 
@@ -864,18 +983,6 @@ int main(void) {
 
     // Define data structure to capture physical inputs
     struct input_event gpioie;
-
-    // Create /dev/input/event# string by using grep to get physical adc-keys event number
-    char openadckeys[1000] = "/dev/input/";
-    strcat(openadckeys, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A1 adc-keys/ | grep -Eo 'event[0-9]+'"));
-    fprintf(stderr, "Physical gpio_keys: %s\nReady.\n", openadckeys);
-
-    // Open adc-keys, exclusive access 
-    int physical_adc_keys = open(openadckeys, O_RDWR | O_NONBLOCK, S_IRUSR | S_IWUSR);
-    ioctl(physical_adc_keys, EVIOCGRAB, 1);
-
-    // Define data structure to capture physical inputs
-    struct input_event adckeysie;
 
     // you can write events one at a time, but to save overhead we'll
     // update all of them in a single write
@@ -971,16 +1078,6 @@ int main(void) {
             }
             if (gpioie.code == 116) {
                 PHYSICAL_BTN_POWER = gpioie.value;
-            }
-        }
-
-        //Read input on adc buttons            
-        read(physical_adc_keys, &adckeysie, sizeof(struct input_event));
-
-        // Read physical adc-keys inputs
-        if (adckeysie.type == 1 && adckeysie.code == 158) {
-            if (debug_messages_enabled == 1) {
-                fprintf(stderr, "ADCKEYS time:%ld.%06ld\ttype:%u\tcode:%u\tvalue:%d\n", adckeysie.time.tv_sec, adckeysie.time.tv_usec, adckeysie.type, adckeysie.code, adckeysie.value);
             }
         }
 
@@ -1088,13 +1185,13 @@ int main(void) {
             if (ie.code == 17 || ie.code == 544 || ie.code == 545) {
                 if (*dpad_analog_swap == 1 && (ie.code == 17 || ie.code == 544 || ie.code == 545)) {
                     if (ie.code == 17 && ie.value == 1) {
-                        PHYSICAL_ABS_Y = 1800;
+                        PHYSICAL_ABS_Y = 32760;
                     } else if (ie.code == 17 && ie.value == -1) {
-                        PHYSICAL_ABS_Y = -1800;
+                        PHYSICAL_ABS_Y = -32760;
                     } else if (ie.code == 544 && ie.value == 1) {
-                        PHYSICAL_ABS_Y = -1800;
+                        PHYSICAL_ABS_Y = -32760;
                     } else if (ie.code == 545 && ie.value == 1) {
-                        PHYSICAL_ABS_Y = 1800;
+                        PHYSICAL_ABS_Y = 32760;
                     } else {
                         PHYSICAL_ABS_Y = 0;
                     }
@@ -1116,13 +1213,13 @@ int main(void) {
             if (ie.code == 16 || ie.code == 546 || ie.code == 547) {
                 if (*dpad_analog_swap == 1 && (ie.code == 16 || ie.code == 546 || ie.code == 547)) {
                     if (ie.code == 16 && ie.value == 1) {
-                        PHYSICAL_ABS_X = 1800;
+                        PHYSICAL_ABS_X = 32760;
                     } else if (ie.code == 16 && ie.value == -1) {
-                        PHYSICAL_ABS_X = -1800;
+                        PHYSICAL_ABS_X = -32760;
                     } else if (ie.code == 546 && ie.value == 1) {
-                        PHYSICAL_ABS_X = -1800;
+                        PHYSICAL_ABS_X = -32760;
                     } else if (ie.code == 547 && ie.value == 1) {
-                        PHYSICAL_ABS_X = 1800;
+                        PHYSICAL_ABS_X = 32760;
                     } else {
                         PHYSICAL_ABS_X = 0;
                     }
@@ -1143,13 +1240,13 @@ int main(void) {
             // LEFT ANALOG Y
             if (ie.code == 1) {
                 if (*dpad_analog_swap == 1) {
-                    if (ie.value < 1000 && ie.value > -1000) {
+                    if (ie.value < 20000 && ie.value > -20000) {
                         PHYSICAL_HAT_Y = 0;
                     }
-                    if (ie.value >= 1000) {
+                    if (ie.value >= 20000) {
                         PHYSICAL_HAT_Y = 1;
                     }
-                    if (ie.value <= -1000) {
+                    if (ie.value <= -20000) {
                         PHYSICAL_HAT_Y = -1;
                     }
                 } else {
@@ -1164,13 +1261,13 @@ int main(void) {
             // LEFT ANALOG X
             if (ie.code == 0) {
                 if (*dpad_analog_swap == 1) {
-                    if (ie.value < 1000 && ie.value > -1000) {
+                    if (ie.value < 20000 && ie.value > -20000) {
                         PHYSICAL_HAT_X = 0;
                     }
-                    if (ie.value >= 1000) {
+                    if (ie.value >= 20000) {
                         PHYSICAL_HAT_X = 1;
                     }
-                    if (ie.value <= -1000) {
+                    if (ie.value <= -20000) {
                         PHYSICAL_HAT_X = -1;
                     }
                 } else {
@@ -1237,21 +1334,21 @@ int main(void) {
             if (PHYSICAL_ABS_Y > MOUSE_ANALOG_THRESHOLD && (count % 2 == 0)) {
                 mouse_ev[0].type = EV_REL;
                 mouse_ev[0].code = REL_Y;
-				mouse_ev[0].value = round(PHYSICAL_ABS_Y / 500.00 * mouse_speed);
+				mouse_ev[0].value = round(PHYSICAL_ABS_Y / 10000.00 * mouse_speed);
             } else if (PHYSICAL_ABS_Y < -MOUSE_ANALOG_THRESHOLD && (count % 3 == 0)) {
                 mouse_ev[0].type = EV_REL;
                 mouse_ev[0].code = REL_Y;
-                mouse_ev[0].value = round(PHYSICAL_ABS_Y / 500.00 * mouse_speed);
+                mouse_ev[0].value = round(PHYSICAL_ABS_Y / 10000.00 * mouse_speed);
             }
 
             if (PHYSICAL_ABS_X > MOUSE_ANALOG_THRESHOLD && (count % 3 == 0)) {
                 mouse_ev[1].type = EV_REL;
                 mouse_ev[1].code = REL_X;
-                mouse_ev[1].value = round(PHYSICAL_ABS_X / 500.00 * mouse_speed);
+                mouse_ev[1].value = round(PHYSICAL_ABS_X / 10000.00 * mouse_speed);
             } else if (PHYSICAL_ABS_X < -MOUSE_ANALOG_THRESHOLD && (count % 3 == 0)) {
                 mouse_ev[1].type = EV_REL;
                 mouse_ev[1].code = REL_X;
-                mouse_ev[1].value = round(PHYSICAL_ABS_X / 500.00 * mouse_speed);
+                mouse_ev[1].value = round(PHYSICAL_ABS_X / 10000.00 * mouse_speed);
             }
 
             mouse_ev[2].type = EV_SYN;
@@ -1342,11 +1439,11 @@ int main(void) {
 			if ((PHYSICAL_ABS_RZ < -MOUSE_ANALOG_THRESHOLD) && PHYSICAL_ABS_RZ != 0 && count % 20 == 0) {
 				scroll_ev[0].type = EV_REL;
 				scroll_ev[0].code = REL_WHEEL;
-				scroll_ev[0].value = -floor(PHYSICAL_ABS_RZ / 500.00 * mouse_speed) ; // Scale scrolling speed
+				scroll_ev[0].value = -floor(PHYSICAL_ABS_RZ / 10000.00 * mouse_speed) ; // Scale scrolling speed
 			} else if ((PHYSICAL_ABS_RZ > MOUSE_ANALOG_THRESHOLD) && PHYSICAL_ABS_RZ != 0 && count % 20 == 0) {
 				scroll_ev[0].type = EV_REL;
 				scroll_ev[0].code = REL_WHEEL;
-				scroll_ev[0].value = -ceil(PHYSICAL_ABS_RZ / 500.00 * mouse_speed); // Scale scrolling speed
+				scroll_ev[0].value = -ceil(PHYSICAL_ABS_RZ / 10000.00 * mouse_speed); // Scale scrolling speed
 			} else if (PHYSICAL_BTN_TL == 1 && count % 20 == 0) {
 				scroll_ev[0].type = EV_REL;
 				scroll_ev[0].code = REL_WHEEL;
@@ -1369,11 +1466,11 @@ int main(void) {
 			if ((PHYSICAL_ABS_Z < -MOUSE_ANALOG_THRESHOLD) && PHYSICAL_ABS_Z != 0 && count % 20 == 0) {
 				scroll_ev[1].type = EV_REL;
 				scroll_ev[1].code = REL_HWHEEL;
-				scroll_ev[1].value = ceil(PHYSICAL_ABS_Z / 500.00 * mouse_speed); // Scale scrolling speed
+				scroll_ev[1].value = ceil(PHYSICAL_ABS_Z / 10000.00 * mouse_speed); // Scale scrolling speed
 			} else if ((PHYSICAL_ABS_Z > MOUSE_ANALOG_THRESHOLD) && PHYSICAL_ABS_Z != 0 && count % 20 == 0) {
 				scroll_ev[1].type = EV_REL;
 				scroll_ev[1].code = REL_HWHEEL;
-				scroll_ev[1].value = floor(PHYSICAL_ABS_Z / 500.00 * mouse_speed); // Scale scrolling speed
+				scroll_ev[1].value = floor(PHYSICAL_ABS_Z / 10000.00 * mouse_speed); // Scale scrolling speed
 			} else if (PHYSICAL_BTN_TL2 == 1 && count % 20 == 0) {
 				scroll_ev[1].type = EV_REL;
 				scroll_ev[1].code = REL_HWHEEL;
@@ -1559,22 +1656,56 @@ int main(void) {
                 ev[30].value = PHYSICAL_BTN_VOLUMEUP;
             }
 
-            // sync event tells input layer we're done with a "batch" of updates
-            ev[31].type = EV_SYN;
-            ev[31].code = SYN_REPORT;
-            ev[31].value = 0;
-			
-			if (!mouse_mode) {
-				if (write(fd, &ev, sizeof ev) < 0) {
-					perror("write");
-					return 1;
-				}
-			}
-			
-            //Support for 353 series back button
-            if (adckeysie.type == 1 && adckeysie.code == 158) {
-                PHYSICAL_BTN_BACK = adckeysie.value;
+// ...
+// after we've filled ev[0..30], then ev[31] is the SYN_REPORT
+ev[31].type  = EV_SYN;
+ev[31].code  = SYN_REPORT;
+ev[31].value = 0;
+
+if (!mouse_mode)
+{
+    // We'll keep a static oldEv buffer to compare with
+    static struct input_event oldEv[32];
+    static int oldEvInitialized = 0;
+
+    // Decide if there's any difference in the 31 input events
+    // (index 31 is just SYN, we can skip or include it).
+    int changed = 0;
+    if (!oldEvInitialized)
+    {
+        // First time we run, we treat it as changed (so we send once).
+        changed = 1;
+        oldEvInitialized = 1;
+    }
+    else
+    {
+        // Compare each field (type, code, value) of the first 31 entries
+        // (the 32nd is just the SYN, typically won't matter).
+        for (int i = 0; i < 31; i++)
+        {
+            if (ev[i].type != oldEv[i].type ||
+                ev[i].code != oldEv[i].code ||
+                ev[i].value != oldEv[i].value)
+            {
+                changed = 1;
+                break;
             }
+        }
+    }
+
+    if (changed)
+    {
+        // Update oldEv array for next iteration
+        memcpy(oldEv, ev, sizeof(oldEv));
+
+        // Now actually write these events out
+        if (write(fd, ev, sizeof(ev)) < 0)
+        {
+            perror("write");
+            return 1;
+        }
+    }
+}
 
             // Add logic for back/mode/home functionality
             if (PHYSICAL_BTN_BACK == 1) {
@@ -1645,19 +1776,8 @@ int main(void) {
                 isadjustingbrightness = 0;
             }
 
-            if ((adckeysie.code == 158 || ie.code == 316) && adckeysie.value == 0 && PHYSICAL_BTN_VOLUMEUP == 0 && PHYSICAL_BTN_VOLUMEDOWN == 0 && PHYSICAL_ABS_RZ < 1500 && PHYSICAL_ABS_RZ > -1500) {
-                isadjustingbrightness = 0;
-            }
-
             // Reset variables when back button no longer pressed
             if ((ie.code == 158 || ie.code == 316) && ie.value == 0) {
-                PHYSICAL_BTN_BACK = 0;
-                VIRTUAL_BTN_MODE = 0;
-                VIRTUAL_BTN_1 = 0;
-                VIRTUAL_BTN_2 = 0;
-            }
-
-            if ((adckeysie.code == 158 || adckeysie.code == 316) && adckeysie.value == 0) {
                 PHYSICAL_BTN_BACK = 0;
                 VIRTUAL_BTN_MODE = 0;
                 VIRTUAL_BTN_1 = 0;
@@ -1709,7 +1829,7 @@ int main(void) {
                 r1_pressed_time = count;
             } else if (count - select_pressed_time >= 250 && count - r1_pressed_time >= 250) {
                 if (mouse_mode) {
-                    disable_mouse_mode();
+                    disable_mouse_mode(fd);
                        send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Mouse mode disabled. Hold down Select and R1 to enable.' -n bellavita.toast/.MainActivity\"");
                 } else {
                     enable_mouse_mode(fd);
@@ -1721,7 +1841,7 @@ int main(void) {
             select_and_r1_timer_started = 0;
         }
 
-        msleep(4);
+        msleep(2);
         ++count;
     }
 
