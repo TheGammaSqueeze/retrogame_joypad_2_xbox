@@ -974,7 +974,7 @@ int main(void) {
 
     // Create /dev/input/event# string by using grep to get physical retrogame_joypad event number
     char opengpio[1000] = "/dev/input/";
-    strcat(opengpio, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A1 gpio-keys | grep -Eo 'event[0-9]+'"));
+    strcat(opengpio, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A2 gpio-keys | grep -Eo 'event[0-9]+'"));
     fprintf(stderr, "Physical gpio_keys: %s\nReady.\n", opengpio);
 
     // Open gpio-=keys, no exclusive access 
@@ -1068,7 +1068,7 @@ int main(void) {
             screenison = 1;
 
             if (debug_messages_enabled == 1) {
-                fprintf(stderr, "time:%ld.%06ld\ttype:%u\tcode:%u\tvalue:%d\n", gpioie.time.tv_sec, gpioie.time.tv_usec, gpioie.type, gpioie.code, gpioie.value);
+                fprintf(stderr, "GPIO time:%ld.%06ld\ttype:%u\tcode:%u\tvalue:%d\n", gpioie.time.tv_sec, gpioie.time.tv_usec, gpioie.type, gpioie.code, gpioie.value);
             }
             if (gpioie.code == 114) {
                 PHYSICAL_BTN_VOLUMEDOWN = gpioie.value;
@@ -1078,6 +1078,9 @@ int main(void) {
             }
             if (gpioie.code == 116) {
                 PHYSICAL_BTN_POWER = gpioie.value;
+            }
+            if (gpioie.code == 316) {
+                PHYSICAL_BTN_BACK = gpioie.value;
             }
         }
 
@@ -1688,7 +1691,6 @@ if (!mouse_mode)
                 ev[i].value != oldEv[i].value)
             {
                 changed = 1;
-                break;
             }
         }
     }
@@ -1702,7 +1704,6 @@ if (!mouse_mode)
         if (write(fd, ev, sizeof(ev)) < 0)
         {
             perror("write");
-            return 1;
         }
     }
 }
@@ -1756,10 +1757,10 @@ if (!mouse_mode)
             }
 
             // Add brightness control - analog sticks
-            if (VIRTUAL_BTN_MODE == 0 && isadjustingbrightness == 1 && PHYSICAL_ABS_RZ > 1500 && count % 10 == 0) {
+            if (VIRTUAL_BTN_MODE == 0 && isadjustingbrightness == 1 && count % 10 == 0) {
                 lcd_brightness(0);
             }
-            if (VIRTUAL_BTN_MODE == 0 && isadjustingbrightness == 1 && PHYSICAL_ABS_RZ < -1500 && count % 10 == 0) {
+            if (VIRTUAL_BTN_MODE == 0 && isadjustingbrightness == 1 && count % 10 == 0) {
                 lcd_brightness(1);
             }
 
@@ -1772,12 +1773,12 @@ if (!mouse_mode)
             }
 
             // Stop brightness control when buttons are released
-            if ((ie.code == 158 || ie.code == 316) && ie.value == 0 && PHYSICAL_BTN_VOLUMEUP == 0 && PHYSICAL_BTN_VOLUMEDOWN == 0 && PHYSICAL_ABS_RZ < 1500 && PHYSICAL_ABS_RZ > -1500) {
+            if ((ie.code == 158 || ie.code == 316 || gpioie.code == 316) && gpioie.value == 0 && ie.value == 0 && PHYSICAL_BTN_VOLUMEUP == 0 && PHYSICAL_BTN_VOLUMEDOWN == 0 && PHYSICAL_ABS_RZ < 1500 && PHYSICAL_ABS_RZ > -1500) {
                 isadjustingbrightness = 0;
             }
 
             // Reset variables when back button no longer pressed
-            if ((ie.code == 158 || ie.code == 316) && ie.value == 0) {
+            if ((ie.code == 158 || ie.code == 316 || gpioie.code == 316) && ie.value == 0 && gpioie.value == 0) {
                 PHYSICAL_BTN_BACK = 0;
                 VIRTUAL_BTN_MODE = 0;
                 VIRTUAL_BTN_1 = 0;
