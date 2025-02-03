@@ -958,8 +958,8 @@ int main(void) {
 	
     // Create /dev/input/event# string by using grep to get physical retrogame_joypad event number
     char openrgp[1000] = "/dev/input/";
-    strcat(openrgp, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A2 retrogame_joypad | grep -Eo 'event[0-9]+'"));
-    fprintf(stderr, "Physical retrogame_joypad: %s\nReady.\n", openrgp);
+    strcat(openrgp, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A2 zed_joystick | grep -Eo 'event[0-9]+'"));
+    fprintf(stderr, "Physical zed_joystick: %s\nReady.\n", openrgp);
 
     // Open physical_retrogame_joypad, with exclusive access to this application only
     int physical_retrogame_joypad = open(openrgp, O_RDWR | O_NONBLOCK, S_IRUSR | S_IWUSR);
@@ -967,7 +967,7 @@ int main(void) {
 
     char rgpremove[1000] = "rm ";
     strcat(rgpremove, openrgp);
-    send_shell_command(rgpremove);
+    //send_shell_command(rgpremove);
 
     // Define data structure to capture physical inputs
     struct input_event ie;
@@ -1184,122 +1184,148 @@ int main(void) {
                 PHYSICAL_BTN_BACK = 0;
             }
 
-            // DPAD UP/DOWN
-            if (ie.code == 17 || ie.code == 544 || ie.code == 545) {
-                if (*dpad_analog_swap == 1 && (ie.code == 17 || ie.code == 544 || ie.code == 545)) {
-                    if (ie.code == 17 && ie.value == 1) {
-                        PHYSICAL_ABS_Y = 32760;
-                    } else if (ie.code == 17 && ie.value == -1) {
-                        PHYSICAL_ABS_Y = -32760;
-                    } else if (ie.code == 544 && ie.value == 1) {
-                        PHYSICAL_ABS_Y = -32760;
-                    } else if (ie.code == 545 && ie.value == 1) {
-                        PHYSICAL_ABS_Y = 32760;
-                    } else {
-                        PHYSICAL_ABS_Y = 0;
-                    }
-                } else {
-                    if (ie.code == 17) {
-                        PHYSICAL_HAT_Y = ie.value;
-                    } else {
-                        if (ie.code == 544) {
-                            PHYSICAL_HAT_Y = -ie.value;
-                        }
-                        if (ie.code == 545) {
-                            PHYSICAL_HAT_Y = ie.value;
-                        }
-                    }
-                }
-            }
+			// DPAD UP/DOWN
+			if (ie.code == 17 || ie.code == 544 || ie.code == 545 || ie.code == 220 || ie.code == 221) {
+				if (*dpad_analog_swap == 1 && (ie.code == 17 || ie.code == 544 || ie.code == 545 || ie.code == 220 || ie.code == 221)) {
+					if (ie.code == 17 && ie.value == 1) {
+						PHYSICAL_ABS_Y = 32760;
+					} else if (ie.code == 17 && ie.value == -1) {
+						PHYSICAL_ABS_Y = -32760;
+					} else if (ie.code == 544 && ie.value == 1) {
+						PHYSICAL_ABS_Y = -32760;
+					} else if (ie.code == 545 && ie.value == 1) {
+						PHYSICAL_ABS_Y = 32760;
+					} else if (ie.code == 220 && ie.value == 1) {
+						PHYSICAL_ABS_Y = -32760;
+					} else if (ie.code == 221 && ie.value == 1) {
+						PHYSICAL_ABS_Y = 32760;
+					} else {
+						PHYSICAL_ABS_Y = 0;
+					}
+				} else {
+					if (ie.code == 17) {
+						PHYSICAL_HAT_Y = ie.value;
+					} else {
+						if (ie.code == 544) {
+							PHYSICAL_HAT_Y = -ie.value;
+						}
+						if (ie.code == 545) {
+							PHYSICAL_HAT_Y = ie.value;
+						}
+						if (ie.code == 220) {
+							PHYSICAL_HAT_Y = -ie.value;
+						}
+						if (ie.code == 221) {
+							PHYSICAL_HAT_Y = ie.value;
+						}
+					}
+				}
+			}
 
-            // DPAD LEFT/RIGHT
-            if (ie.code == 16 || ie.code == 546 || ie.code == 547) {
-                if (*dpad_analog_swap == 1 && (ie.code == 16 || ie.code == 546 || ie.code == 547)) {
-                    if (ie.code == 16 && ie.value == 1) {
-                        PHYSICAL_ABS_X = 32760;
-                    } else if (ie.code == 16 && ie.value == -1) {
-                        PHYSICAL_ABS_X = -32760;
-                    } else if (ie.code == 546 && ie.value == 1) {
-                        PHYSICAL_ABS_X = -32760;
-                    } else if (ie.code == 547 && ie.value == 1) {
-                        PHYSICAL_ABS_X = 32760;
-                    } else {
-                        PHYSICAL_ABS_X = 0;
-                    }
-                } else {
-                    if (ie.code == 16) {
-                        PHYSICAL_HAT_X = ie.value;
-                    } else {
-                        if (ie.code == 546) {
-                            PHYSICAL_HAT_X = -ie.value;
-                        }
-                        if (ie.code == 547) {
-                            PHYSICAL_HAT_X = ie.value;
-                        }
-                    }
-                }
-            }
+			// DPAD LEFT/RIGHT
+			if (ie.code == 16 || ie.code == 546 || ie.code == 547 || ie.code == 222 || ie.code == 223) {
+				if (*dpad_analog_swap == 1 && (ie.code == 16 || ie.code == 546 || ie.code == 547 || ie.code == 222 || ie.code == 223)) {
+					if (ie.code == 16 && ie.value == 1) {
+						PHYSICAL_ABS_X = 32760;
+					} else if (ie.code == 16 && ie.value == -1) {
+						PHYSICAL_ABS_X = -32760;
+					} else if (ie.code == 546 && ie.value == 1) {
+						PHYSICAL_ABS_X = -32760;
+					} else if (ie.code == 547 && ie.value == 1) {
+						PHYSICAL_ABS_X = 32760;
+					} else if (ie.code == 222 && ie.value == 1) {
+						PHYSICAL_ABS_X = -32760;
+					} else if (ie.code == 223 && ie.value == 1) {
+						PHYSICAL_ABS_X = 32760;
+					} else {
+						PHYSICAL_ABS_X = 0;
+					}
+				} else {
+					if (ie.code == 16) {
+						PHYSICAL_HAT_X = ie.value;
+					} else {
+						if (ie.code == 546) {
+							PHYSICAL_HAT_X = -ie.value;
+						}
+						if (ie.code == 547) {
+							PHYSICAL_HAT_X = ie.value;
+						}
+						if (ie.code == 222) {
+							PHYSICAL_HAT_X = -ie.value;
+						}
+						if (ie.code == 223) {
+							PHYSICAL_HAT_X = ie.value;
+						}
+					}
+				}
+			}
 
-            // LEFT ANALOG Y
-            if (ie.code == 1) {
-                if (*dpad_analog_swap == 1) {
-                    if (ie.value < 20000 && ie.value > -20000) {
-                        PHYSICAL_HAT_Y = 0;
-                    }
-                    if (ie.value >= 20000) {
-                        PHYSICAL_HAT_Y = 1;
-                    }
-                    if (ie.value <= -20000) {
-                        PHYSICAL_HAT_Y = -1;
-                    }
-                } else {
-                    if (*analog_sensitivity != 0) {
-                        PHYSICAL_ABS_Y = lookupValue(ie.value);
-                    } else {
-                        PHYSICAL_ABS_Y = ie.value;
-                    }
-                }
-            }
-
-            // LEFT ANALOG X
-            if (ie.code == 0) {
-                if (*dpad_analog_swap == 1) {
-                    if (ie.value < 20000 && ie.value > -20000) {
-                        PHYSICAL_HAT_X = 0;
-                    }
-                    if (ie.value >= 20000) {
-                        PHYSICAL_HAT_X = 1;
-                    }
-                    if (ie.value <= -20000) {
-                        PHYSICAL_HAT_X = -1;
-                    }
-                } else {
-                    if (*analog_sensitivity != 0) {
-                        PHYSICAL_ABS_X = lookupValue(ie.value);
-                    } else {
-                        PHYSICAL_ABS_X = ie.value;
-                    }
-                }
-            }
-
-            // RIGHT ANALOG Y
-            if (ie.code == 2 || ie.code == 3) {
-                if (*analog_sensitivity != 0) {
-                    PHYSICAL_ABS_Z = lookupValue(ie.value);
-                } else {
-                    PHYSICAL_ABS_Z = ie.value;
-                }
-            }
-
-            // RIGHT ANALOG X
-            if (ie.code == 5 || ie.code == 4) {
-                if (*analog_sensitivity != 0) {
-                    PHYSICAL_ABS_RZ = lookupValue(ie.value);
-                } else {
-                    PHYSICAL_ABS_RZ = ie.value;
-                }
-            }
+// LEFT ANALOG Y
+if (ie.code == 1) {
+    if (*dpad_analog_swap == 1) {
+        // This block is presumably for interpreting the analog stick as a D-Pad,
+        // so the thresholds here are still up to you to adjust if needed.
+        if (ie.value < 20000 && ie.value > -20000) {
+            PHYSICAL_HAT_Y = 0;
         }
+        if (ie.value >= 20000) {
+            PHYSICAL_HAT_Y = 1;
+        }
+        if (ie.value <= -20000) {
+            PHYSICAL_HAT_Y = -1;
+        }
+    } else {
+        // Inline mapping from 0..18 → -32760..32760 (9 → 0).
+        if (*analog_sensitivity != 0) {
+            PHYSICAL_ABS_Y = lookupValue((ie.value - 9) * 3640);
+        } else {
+            PHYSICAL_ABS_Y = (ie.value - 9) * 3640;
+        }
+    }
+}
+
+// LEFT ANALOG X
+if (ie.code == 0) {
+    if (*dpad_analog_swap == 1) {
+        if (ie.value < 20000 && ie.value > -20000) {
+            PHYSICAL_HAT_X = 0;
+        }
+        if (ie.value >= 20000) {
+            PHYSICAL_HAT_X = 1;
+        }
+        if (ie.value <= -20000) {
+            PHYSICAL_HAT_X = -1;
+        }
+    } else {
+        // Inline mapping from 0..18 → -32760..32760 (9 → 0).
+        if (*analog_sensitivity != 0) {
+            PHYSICAL_ABS_X = lookupValue((ie.value - 9) * 3640);
+        } else {
+            PHYSICAL_ABS_X = (ie.value - 9) * 3640;
+        }
+    }
+}
+
+// RIGHT ANALOG Y
+if (ie.code == 2 || ie.code == 3) {
+    // Inline mapping from 0..18 → -32760..32760 (9 → 0).
+    if (*analog_sensitivity != 0) {
+        PHYSICAL_ABS_Z = lookupValue((ie.value - 9) * 3640);
+    } else {
+        PHYSICAL_ABS_Z = (ie.value - 9) * 3640;
+    }
+}
+
+// RIGHT ANALOG X
+if (ie.code == 5 || ie.code == 4) {
+    // Inline mapping from 0..18 → -32760..32760 (9 → 0).
+    if (*analog_sensitivity != 0) {
+        PHYSICAL_ABS_RZ = lookupValue((ie.value - 9) * 3640);
+    } else {
+        PHYSICAL_ABS_RZ = (ie.value - 9) * 3640;
+    }
+}
+		}
 
         struct input_event mouse_ev[3];
         memset(&mouse_ev, 0, sizeof mouse_ev);
