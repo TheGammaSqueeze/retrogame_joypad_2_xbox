@@ -612,7 +612,7 @@ static void createAnalogSensitvityCSV() {
         chmod(filepath, 0666);
 
         // Write data to CSV
-        for (int i = -32760; i <= 32760; i++) {
+        for (int i = -32768; i <= 32768; i++) {
             double secondValue;
             if (i == 0) {
                 // Keep 0 as is
@@ -653,7 +653,7 @@ static void createAnalogSensitvityCSV() {
         chmod(filepath, 0666);
 
         // Write data to CSV
-        for (int i = -32760; i <= 32760; i++) {
+        for (int i = -32768; i <= 32768; i++) {
             double secondValue;
             if (i == 0) {
                 // Keep 0 as is
@@ -695,7 +695,7 @@ static void createAnalogSensitvityCSV() {
         chmod(filepath, 0666);
 
         // Write data to CSV
-        for (int i = -32760; i <= 32760; i++) {
+        for (int i = -32768; i <= 32768; i++) {
             double secondValue;
             if (i == 0) {
                 // Keep 0 as is
@@ -738,7 +738,7 @@ static void createAnalogSensitvityCSV() {
         chmod(filepath, 0666);
 
         // Write data to CSV
-        for (int i = -32760; i <= 32760; i++) {
+        for (int i = -32768; i <= 32768; i++) {
             fprintf(file, "%d,%d\n", i, i);
         }
 
@@ -887,11 +887,11 @@ int main(void) {
 
     ioctl(fd, UI_SET_EVBIT, EV_ABS); // enable analog absolute position handling
 
-    setup_abs(fd, ABS_X, -32760, 32760);
-    setup_abs(fd, ABS_Y, -32760, 32760);
+    setup_abs(fd, ABS_X, -32768, 32768);
+    setup_abs(fd, ABS_Y, -32768, 32768);
 
-    setup_abs(fd, ABS_Z, -32760, 32760);
-    setup_abs(fd, ABS_RZ, -32760, 32760);
+    setup_abs(fd, ABS_Z, -32768, 32768);
+    setup_abs(fd, ABS_RZ, -32768, 32768);
 
     setup_abs(fd, ABS_GAS, 0, 1);
     setup_abs(fd, ABS_BRAKE, 0, 1);
@@ -958,7 +958,7 @@ int main(void) {
 	
     // Create /dev/input/event# string by using grep to get physical retrogame_joypad event number
     char openrgp[1000] = "/dev/input/";
-    strcat(openrgp, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A2 retrogame_joypad | grep -Eo 'event[0-9]+'"));
+    strcat(openrgp, send_shell_command("grep -E 'Name|Handlers|Phys=' /proc/bus/input/devices | grep -A2 'Chip Blueprint controllers'| grep -Eo 'event[0-9]+'"));
     fprintf(stderr, "Physical retrogame_joypad: %s\nReady.\n", openrgp);
 
     // Open physical_retrogame_joypad, with exclusive access to this application only
@@ -1094,6 +1094,13 @@ int main(void) {
                 fprintf(stderr, "time:%ld.%06ld\ttype:%u\tcode:%u\tvalue:%d\n", ie.time.tv_sec, ie.time.tv_usec, ie.type, ie.code, ie.value);
             }
 
+            if (ie.code == 114) {
+                PHYSICAL_BTN_VOLUMEDOWN = ie.value;
+            }
+            if (ie.code == 115) {
+                PHYSICAL_BTN_VOLUMEUP = ie.value;
+            }
+
             // L1
             if (ie.code == 310) {
                 PHYSICAL_BTN_TL = ie.value;
@@ -1170,7 +1177,7 @@ int main(void) {
             }
 
             // HOME
-            if (ie.code == 68) {
+            if (ie.code == 68 || ie.code == 172) {
                 PHYSICAL_BTN_HOME = ie.value;
             }
 
@@ -1185,16 +1192,16 @@ int main(void) {
             }
 
             // DPAD UP/DOWN
-            if (ie.code == 17 || ie.code == 544 || ie.code == 545) {
-                if (*dpad_analog_swap == 1 && (ie.code == 17 || ie.code == 544 || ie.code == 545)) {
+            if (ie.code == 17 || ie.code == 103 || ie.code == 108) {
+                if (*dpad_analog_swap == 1 && (ie.code == 17 || ie.code == 103 || ie.code == 108)) {
                     if (ie.code == 17 && ie.value == 1) {
-                        PHYSICAL_ABS_Y = 32760;
+                        PHYSICAL_ABS_Y = 32768;
                     } else if (ie.code == 17 && ie.value == -1) {
-                        PHYSICAL_ABS_Y = -32760;
-                    } else if (ie.code == 544 && ie.value == 1) {
-                        PHYSICAL_ABS_Y = -32760;
-                    } else if (ie.code == 545 && ie.value == 1) {
-                        PHYSICAL_ABS_Y = 32760;
+                        PHYSICAL_ABS_Y = -32768;
+                    } else if (ie.code == 103 && ie.value == 1) {
+                        PHYSICAL_ABS_Y = -32768;
+                    } else if (ie.code == 108 && ie.value == 1) {
+                        PHYSICAL_ABS_Y = 32768;
                     } else {
                         PHYSICAL_ABS_Y = 0;
                     }
@@ -1202,10 +1209,10 @@ int main(void) {
                     if (ie.code == 17) {
                         PHYSICAL_HAT_Y = ie.value;
                     } else {
-                        if (ie.code == 544) {
+                        if (ie.code == 103) {
                             PHYSICAL_HAT_Y = -ie.value;
                         }
-                        if (ie.code == 545) {
+                        if (ie.code == 108) {
                             PHYSICAL_HAT_Y = ie.value;
                         }
                     }
@@ -1213,16 +1220,16 @@ int main(void) {
             }
 
             // DPAD LEFT/RIGHT
-            if (ie.code == 16 || ie.code == 546 || ie.code == 547) {
-                if (*dpad_analog_swap == 1 && (ie.code == 16 || ie.code == 546 || ie.code == 547)) {
+            if (ie.code == 16 || ie.code == 105 || ie.code == 106) {
+                if (*dpad_analog_swap == 1 && (ie.code == 16 || ie.code == 105 || ie.code == 106)) {
                     if (ie.code == 16 && ie.value == 1) {
-                        PHYSICAL_ABS_X = 32760;
+                        PHYSICAL_ABS_X = 32768;
                     } else if (ie.code == 16 && ie.value == -1) {
-                        PHYSICAL_ABS_X = -32760;
-                    } else if (ie.code == 546 && ie.value == 1) {
-                        PHYSICAL_ABS_X = -32760;
-                    } else if (ie.code == 547 && ie.value == 1) {
-                        PHYSICAL_ABS_X = 32760;
+                        PHYSICAL_ABS_X = -32768;
+                    } else if (ie.code == 105 && ie.value == 1) {
+                        PHYSICAL_ABS_X = -32768;
+                    } else if (ie.code == 106 && ie.value == 1) {
+                        PHYSICAL_ABS_X = 32768;
                     } else {
                         PHYSICAL_ABS_X = 0;
                     }
@@ -1230,10 +1237,10 @@ int main(void) {
                     if (ie.code == 16) {
                         PHYSICAL_HAT_X = ie.value;
                     } else {
-                        if (ie.code == 546) {
+                        if (ie.code == 105) {
                             PHYSICAL_HAT_X = -ie.value;
                         }
-                        if (ie.code == 547) {
+                        if (ie.code == 106) {
                             PHYSICAL_HAT_X = ie.value;
                         }
                     }
