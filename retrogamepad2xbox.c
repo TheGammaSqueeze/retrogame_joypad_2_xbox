@@ -28,6 +28,7 @@ int * analog_axis, * analog_axis_isupdated, analog_axis_isupdated_local;
 int * rightanalog_axis, * rightanalog_axis_isupdated, rightanalog_axis_isupdated_local;
 int * dpad_analog_swap, * dpad_analog_swap_isupdated, dpad_analog_swap_isupdated_local;
 int * fan_control, * fan_control_isupdated, fan_control_isupdated_local, * fan_control_isenabled, fan_control_isenabled_local;
+int mouse_combo_already_toggled = 0;
 
 // File descriptors for locking memory maps
 int fd_abxy_layout, fd_abxy_layout_isupdated;
@@ -1889,24 +1890,29 @@ if (!mouse_mode)
         }
 
         // Mouse mode toggle logic
-        if (PHYSICAL_BTN_SELECT && PHYSICAL_BTN_TR) {
-            if (!select_and_r1_timer_started) {
-                select_and_r1_timer_started = 1;
-                select_pressed_time = count;
-                r1_pressed_time = count;
-            } else if (count - select_pressed_time >= 250 && count - r1_pressed_time >= 250) {
-                if (mouse_mode) {
-                    disable_mouse_mode(fd);
-                       send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Mouse mode disabled. Hold down Select and R1 to enable.' -n bellavita.toast/.MainActivity\"");
-                } else {
-                    enable_mouse_mode(fd);
-                }
-                send_shell_command("settings put secure accessibility_display_inversion_enabled 1 && sleep 0.5 && settings put secure accessibility_display_inversion_enabled 0");
-                select_and_r1_timer_started = 0;
-            }
-        } else {
-            select_and_r1_timer_started = 0;
-        }
+	if (PHYSICAL_BTN_SELECT && PHYSICAL_BTN_TR) {
+	    if (!mouse_combo_already_toggled) {
+		if (!select_and_r1_timer_started) {
+		    select_and_r1_timer_started = 1;
+		    select_pressed_time = count;
+		    r1_pressed_time = count;
+		} else if (count - select_pressed_time >= 50 && count - r1_pressed_time >= 50) {
+		    if (mouse_mode) {
+		        disable_mouse_mode(fd);
+		        send_shell_command("su -lp 2000 -c \"am start -a android.intent.action.MAIN -e toasttext 'Mouse mode disabled. Hold down Select and R1 to enable.' -n bellavita.toast/.MainActivity\"");
+		    } else {
+		        enable_mouse_mode(fd);
+		    }
+		    send_shell_command("settings put secure accessibility_display_inversion_enabled 1 && sleep 0.5 && settings put secure accessibility_display_inversion_enabled 0");
+		    // Mark that the combo has already toggled until the buttons are released
+		    mouse_combo_already_toggled = 1;
+		}
+	    }
+	} else {
+	    // Reset flags once one or both buttons are released
+	    select_and_r1_timer_started = 0;
+	    mouse_combo_already_toggled = 0;
+	}
 
         msleep(3);
         ++count;
