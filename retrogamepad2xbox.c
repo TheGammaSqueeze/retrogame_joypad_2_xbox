@@ -1727,7 +1727,7 @@ if (!mouse_mode)
                     VIRTUAL_BTN_MODE = 1;
                     backpresscomplete = 1;
                     homepresscomplete = 1;
-                    if (PHYSICAL_BTN_VOLUMEUP == 1 || PHYSICAL_BTN_VOLUMEDOWN == 1 || PHYSICAL_ABS_RZ > 1500 || PHYSICAL_ABS_RZ < -1500) {
+                    if (PHYSICAL_BTN_VOLUMEUP == 1 || PHYSICAL_BTN_VOLUMEDOWN == 1) {
                         isadjustingbrightness = 1;
                         VIRTUAL_BTN_MODE = 0;
                     } else {
@@ -1780,7 +1780,7 @@ if (!mouse_mode)
             }
 
             // Stop brightness control when buttons are released
-            if ((ie.code == 158 || ie.code == 316 || gpioie.code == 316) && gpioie.value == 0 && ie.value == 0 && PHYSICAL_BTN_VOLUMEUP == 0 && PHYSICAL_BTN_VOLUMEDOWN == 0 && PHYSICAL_ABS_RZ < 1500 && PHYSICAL_ABS_RZ > -1500) {
+            if ((ie.code == 158 || ie.code == 316 || gpioie.code == 316) && gpioie.value == 0 && ie.value == 0 && PHYSICAL_BTN_VOLUMEUP == 0 && PHYSICAL_BTN_VOLUMEDOWN == 0) {
                 isadjustingbrightness = 0;
             }
 
